@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Escrow Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Inter',sans-serif; background:var(--paper-dim); color:var(--ink); line-height:1.6;}
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:700; letter-spacing:-0.02em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+
+  /* ---- App shell ---- */
+  .app{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+  .side{background:var(--ink); color:#fff; padding:26px 20px; position:sticky; top:0; height:100vh;}
+  .side .brand{font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:36px;}
+  .side .brand b{color:var(--blue-light);}
+  .side nav a{display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:rgba(255,255,255,0.65); font-size:0.92rem; font-weight:500; margin-bottom:4px; transition:background .15s,color .15s;}
+  .side nav a:hover{background:rgba(255,255,255,0.06); color:#fff;}
+  .side nav a.active{background:var(--blue); color:#fff;}
+  .side nav .grp-label{font-family:'JetBrains Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin:22px 0 8px 12px;}
+
+  .main{padding:32px 40px 60px;}
+  .breadcrumb{font-size:0.82rem; color:var(--gray); margin-bottom:10px;}
+  .breadcrumb a:hover{color:var(--blue);}
+
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px; gap:20px;}
+  .topbar h1{font-size:1.4rem; margin-bottom:6px;}
+  .topbar .meta{color:var(--gray); font-size:0.88rem;}
+  .status-pill{padding:7px 16px; border-radius:20px; font-size:0.82rem; font-weight:700; white-space:nowrap;}
+  .status-pill.inspection{background:#F5F3FF; color:#7C3AED;}
+
+  /* ---- Timeline ---- */
+  .panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:22px;}
+  .panel h2{font-size:1rem; margin-bottom:18px;}
+
+  .timeline{display:flex; align-items:flex-start; overflow-x:auto; padding-bottom:4px;}
+  .tl-step{display:flex; flex-direction:column; align-items:center; flex:1; min-width:88px; text-align:center; position:relative;}
+  .tl-step .dot{width:26px; height:26px; border-radius:50%; background:#fff; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; color:var(--gray); z-index:1;}
+  .tl-step .lbl{font-size:0.74rem; font-weight:600; color:var(--gray); margin-top:8px; max-width:90px;}
+  .tl-step .date{font-size:0.68rem; color:var(--gray); margin-top:2px;}
+  .tl-line{flex:1; height:2px; background:var(--line); margin-top:12px; position:relative; top:0;}
+  .tl-step.done .dot{background:var(--green); border-color:var(--green); color:#fff;}
+  .tl-step.done .lbl{color:var(--ink);}
+  .tl-step.done + .tl-line{background:var(--green);}
+  .tl-step.current .dot{background:var(--blue); border-color:var(--blue); color:#fff; box-shadow:0 0 0 4px var(--blue-pale);}
+  .tl-step.current .lbl{color:var(--ink);}
+
+  /* ---- Grid layout ---- */
+  .grid2{display:grid; grid-template-columns:1fr 340px; gap:22px; align-items:start;}
+
+  /* ---- Chat ---- */
+  .chat-box{display:flex; flex-direction:column; height:420px;}
+  .chat-msgs{flex:1; overflow-y:auto; padding-right:6px; display:flex; flex-direction:column; gap:12px;}
+  .msg{max-width:75%; padding:10px 14px; border-radius:12px; font-size:0.88rem;}
+  .msg.them{background:var(--paper-dim); align-self:flex-start; border-bottom-left-radius:4px;}
+  .msg.me{background:var(--blue); color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
+  .msg .time{display:block; font-size:0.68rem; margin-top:4px; opacity:0.65;}
+  .msg.file{display:flex; align-items:center; gap:8px;}
+  .chat-input{display:flex; gap:8px; margin-top:14px; align-items:center;}
+  .chat-input input[type=text]{flex:1; padding:11px 14px; border:1px solid var(--line); border-radius:22px; font-size:0.88rem; background:var(--paper-dim);}
+  .chat-input input[type=text]:focus{outline:2px solid var(--blue-light); background:#fff;}
+  .icon-btn{width:38px; height:38px; border-radius:50%; background:var(--paper-dim); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;}
+  .icon-btn:hover{background:var(--blue-pale); color:var(--blue);}
+  .send-btn{width:38px; height:38px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .send-btn:hover{background:#1E4CE0;}
+
+  /* ---- Side panels ---- */
+  .info-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:0.86rem;}
+  .info-row:last-child{border-bottom:none;}
+  .info-row .k{color:var(--gray);}
+  .info-row .v{font-weight:600; text-align:right;}
+
+  .party{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .party:last-child{border-bottom:none;}
+  .party .av{width:36px; height:36px; border-radius:50%; background:var(--blue-pale); color:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0;}
+  .party .name{font-weight:600; font-size:0.88rem;}
+  .party .role{font-size:0.76rem; color:var(--gray);}
+
+  .evidence-list{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+  .evidence-item{display:flex; align-items:center; gap:10px; padding:9px 10px; background:var(--paper-dim); border-radius:8px; font-size:0.84rem;}
+  .evidence-item .ic{width:30px; height:30px; border-radius:6px; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .evidence-item .fname{flex:1; font-weight:600;}
+  .evidence-item .fmeta{font-size:0.72rem; color:var(--gray);}
+  .upload-drop{border:1.5px dashed var(--line); border-radius:10px; padding:18px; text-align:center; font-size:0.82rem; color:var(--gray); cursor:pointer; transition:border-color .15s;}
+  .upload-drop:hover{border-color:var(--blue-light); color:var(--blue);}
+
+  .action-btns{display:flex; flex-direction:column; gap:10px;}
+  .btn{display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:8px; font-weight:600; font-size:0.9rem;}
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-primary:hover{background:#1E4CE0;}
+  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn-ghost:hover{border-color:var(--blue-light); color:var(--blue);}
+  .btn-danger{background:#fff; border:1px solid var(--red); color:var(--red);}
+  .btn-danger:hover{background:#FEF2F2;}
+
+  @media(max-width:960px){
+    .app{grid-template-columns:1fr;}
+    .side{position:relative; height:auto;}
+    .grid2{grid-template-columns:1fr;}
+    .topbar{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">Trust<b>Pay</b></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="#" class="active">My Escrows</a>
+      <a href="#">Chat</a>
+      <a href="#">Disputes</a>
+      <a href="#">Wallet</a>
+      <a href="#">Profile</a>
+      <div class="grp-label">Account</div>
+      <a href="#">Notifications</a>
+      <a href="login.html">Logout</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="breadcrumb"><a href="dashboard.html">Dashboard</a> / My Escrows / <strong>ESC-284193</strong></div>
+
+    <div class="topbar">
+      <div>
+        <h1>iPhone 13 (Second-hand) <span class="mono" style="font-size:0.9rem; color:var(--gray);">#ESC-284193</span></h1>
+        <div class="meta">Seller: Mobile Zone BD · Created Jul 8, 2026 · $440.00 held in escrow</div>
+      </div>
+      <span class="status-pill inspection">Inspection Period</span>
+    </div>
+
+    <div class="panel">
+      <h2>Escrow Status</h2>
+      <div class="timeline">
+        <div class="tl-step done"><div class="dot">✓</div><div class="lbl">Paid</div><div class="date">Jul 8</div></div>
+        <div class="tl-line"></div>
+        <div class="tl-step done"><div class="dot">✓</div><div class="lbl">Accepted</div><div class="date">Jul 8</div></div>
+        <div class="tl-line"></div>
+        <div class="tl-step done"><div class="dot">✓</div><div class="lbl">Shipped</div><div class="date">Jul 9</div></div>
+        <div class="tl-line"></div>
+        <div class="tl-step done"><div class="dot">✓</div><div class="lbl">Delivered</div><div class="date">Jul 11</div></div>
+        <div class="tl-line"></div>
+        <div class="tl-step current"><div class="dot">5</div><div class="lbl">Inspection</div><div class="date">In progress</div></div>
+        <div class="tl-line"></div>
+        <div class="tl-step"><div class="dot">6</div><div class="lbl">Completed</div><div class="date">—</div></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <!-- LEFT: Chat -->
+      <div class="panel">
+        <h2>Chat with Mobile Zone BD</h2>
+        <div class="chat-box">
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="msg them">Hi! Your order has been shipped. Tracking number is SP-88213X.<span class="time">Jul 9, 10:04 AM</span></div>
+            <div class="msg me">Thanks, I'll track it. Please make sure it's well packed.<span class="time">Jul 9, 10:12 AM</span></div>
+            <div class="msg them">Of course, double boxed with bubble wrap.<span class="time">Jul 9, 10:15 AM</span></div>
+            <div class="msg me">Got it today, checking now before I confirm.<span class="time">Jul 11, 4:40 PM</span></div>
+            <div class="msg them file">📎 packaging_proof.jpg<span class="time">Jul 11, 4:45 PM</span></div>
+          </div>
+          <form class="chat-input" onsubmit="return sendMsg(event)">
+            <button type="button" class="icon-btn" title="Attach file" onclick="document.getElementById('chat-file').click()">📎</button>
+            <input type="file" id="chat-file" style="display:none;">
+            <input type="text" id="chat-text" placeholder="Type a message…">
+            <button type="submit" class="send-btn" title="Send">➤</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT: Info + Evidence + Actions -->
+      <div>
+        <div class="panel">
+          <h2>Parties</h2>
+          <div class="party">
+            <div class="av">R</div>
+            <div><div class="name">Rafia Haque</div><div class="role">Buyer (You)</div></div>
+          </div>
+          <div class="party">
+            <div class="av">M</div>
+            <div><div class="name">Mobile Zone BD</div><div class="role">Seller · ★4.8</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Order Summary</h2>
+          <div class="info-row"><span class="k">Item price</span><span class="v mono">$430.00</span></div>
+          <div class="info-row"><span class="k">Escrow fee</span><span class="v mono">$10.00</span></div>
+          <div class="info-row"><span class="k">Total held</span><span class="v mono">$440.00</span></div>
+          <div class="info-row"><span class="k">Delivery method</span><span class="v">Courier</span></div>
+          <div class="info-row"><span class="k">Inspection period</span><span class="v">Ends Jul 14, 4:40 PM</span></div>
+        </div>
+
+        <div class="panel">
+          <h2>Evidence</h2>
+          <div class="evidence-list" id="evidence-list">
+            <div class="evidence-item">
+              <div class="ic">🖼️</div>
+              <div><div class="fname">packaging_proof.jpg</div><div class="fmeta">Uploaded by seller · Jul 11</div></div>
+            </div>
+            <div class="evidence-item">
+              <div class="ic">📄</div>
+              <div><div class="fname">tracking_receipt.pdf</div><div class="fmeta">Uploaded by seller · Jul 9</div></div>
+            </div>
+          </div>
+          <label class="upload-drop">
+            <input type="file" id="evidence-upload" style="display:none;" onchange="uploadEvidence(this)">
+            📤 Click to upload photo, video, or PDF
+          </label>
+        </div>
+
+        <div class="panel">
+          <h2>Actions</h2>
+          <div class="action-btns">
+            <button class="btn btn-primary" onclick="confirmReceipt()">Confirm Receipt & Release Funds</button>
+            <button class="btn btn-ghost" onclick="alert('This is a static demo — extension request sent to seller.')">Request Extension</button>
+            <a href="dispute.html" class="btn btn-danger">Raise a Dispute</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function sendMsg(e){
+    e.preventDefault();
+    const input = document.getElementById('chat-text');
+    const text = input.value.trim();
+    if(!text) return false;
+    const msgs = document.getElementById('chat-msgs');
+    const div = document.createElement('div');
+    div.className = 'msg me';
+    const now = new Date();
+    const time = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    div.innerHTML = text.replace(/</g,'&lt;') + '<span class="time">' + time + '</span>';
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    input.value = '';
+    return false;
+  }
+
+  function uploadEvidence(input){
+    if(!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const list = document.getElementById('evidence-list');
+    const item = document.createElement('div');
+    item.className = 'evidence-item';
+    const icon = file.type.startsWith('image') ? '🖼️' : file.type.startsWith('video') ? '🎞️' : '📄';
+    item.innerHTML = '<div class="ic">'+icon+'</div><div><div class="fname">'+file.name+'</div><div class="fmeta">Uploaded by you · just now</div></div>';
+    list.appendChild(item);
+    input.value = '';
+  }
+
+  function confirmReceipt(){
+    if(confirm('Confirm you received the item and it matches the description? This will release funds to the seller.')){
+      alert('Funds released — this escrow will move to Completed. (Static demo)');
+    }
+  }
+</script>
+
+</body>
+</html>
