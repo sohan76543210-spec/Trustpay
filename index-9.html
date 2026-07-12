@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Secure Escrow Transactions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220;
+    --ink-soft:#1B2B45;
+    --ink-softer:#33507A;
+    --paper:#FFFFFF;
+    --paper-dim:#F2F6FF;
+    --blue:#2F5FFF;
+    --blue-light:#7A9EFF;
+    --blue-pale:#E8EEFF;
+    --navy-deep:#0B1220;
+    --line: rgba(11,18,32,0.10);
+    --line-dark: rgba(255,255,255,0.16);
+    --gray:#5B677A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter', sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.65;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+    font-feature-settings:"kern" 1, "liga" 1;
+  }
+  h1,h2,h3,.display{
+    font-family:'Sora', sans-serif;
+    font-weight:700;
+    line-height:1.1;
+    letter-spacing:-0.02em;
+  }
+  .mono{font-family:'JetBrains Mono', monospace; letter-spacing:0.02em;}
+  a{color:inherit; text-decoration:none;}
+  img,svg{display:block; max-width:100%;}
+  .wrap{max-width:1160px; margin:0 auto; padding:0 28px;}
+  section{position:relative;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+
+  a:focus-visible, button:focus-visible, summary:focus-visible{
+    outline:2px solid var(--blue-light);
+    outline-offset:3px;
+    border-radius:2px;
+  }
+
+  /* ---------- NAV ---------- */
+  header.nav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(255,255,255,0.88);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 28px; max-width:1160px; margin:0 auto;
+  }
+  .brand{display:flex; align-items:center; gap:10px; color:var(--ink);}
+  .brand .stamp-mini{width:34px; height:34px; flex-shrink:0;}
+  .brand-name{font-family:'Sora', sans-serif; font-weight:700; font-size:1.2rem; letter-spacing:-0.01em;}
+  .brand-name b{color:var(--blue); font-weight:700;}
+  nav.links{display:flex; gap:28px; align-items:center;}
+  nav.links a{color:var(--gray); font-size:0.95rem; font-weight:500; transition:color .2s;}
+  nav.links a:hover{color:var(--blue);}
+  .nav-cta{
+    background:var(--blue); color:#fff; padding:10px 22px; border-radius:8px;
+    font-weight:600; font-size:0.9rem; border:1px solid var(--blue);
+    transition:background .2s, transform .2s; box-shadow:0 8px 20px -8px rgba(47,95,255,0.55);
+  }
+  .nav-cta:hover{background:#1E4CE0; transform:translateY(-1px);}
+  .nav-toggle{display:none; background:none; border:none; color:var(--ink); font-size:1.6rem; cursor:pointer;}
+
+  @media(max-width:820px){
+    nav.links{position:fixed; top:64px; left:0; right:0; background:#fff; flex-direction:column; align-items:flex-start; padding:18px 28px 24px; gap:16px; transform:translateY(-130%); transition:transform .3s ease; border-bottom:1px solid var(--line); box-shadow:0 20px 40px -20px rgba(11,18,32,0.2);}
+    nav.links.open{transform:translateY(0);}
+    .nav-toggle{display:block;}
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    background:linear-gradient(180deg, var(--blue-pale) 0%, #FFFFFF 62%);
+    color:var(--ink);
+    padding:150px 0 110px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero-grid{
+    display:grid; grid-template-columns:1.15fr 0.85fr; gap:56px; align-items:center;
+    position:relative; z-index:2;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--blue); background:#fff; border:1px solid var(--line); padding:7px 14px; border-radius:20px;
+    margin-bottom:24px; box-shadow:0 8px 20px -14px rgba(11,18,32,0.35);
+  }
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:#22C55E; box-shadow:0 0 0 3px rgba(34,197,94,0.2);}
+  .hero h1{font-size:clamp(2.4rem, 5.2vw, 3.9rem); max-width:13ch; margin-bottom:24px; font-weight:800; color:var(--ink);}
+  .hero h1 em{font-style:normal; color:var(--blue);}
+  .hero p.lead{font-size:1.1rem; color:var(--gray); max-width:46ch; margin-bottom:36px;}
+  .hero-actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:44px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; padding:14px 28px; border-radius:10px;
+    font-weight:600; font-size:0.96rem; cursor:pointer; border:1px solid transparent; transition:all .2s;
+  }
+  .btn-primary{background:var(--blue); color:#fff; box-shadow:0 14px 28px -12px rgba(47,95,255,0.55);}
+  .btn-primary:hover{background:#1E4CE0; transform:translateY(-2px);}
+  .btn-ghost{background:#fff; color:var(--ink); border-color:var(--line);}
+  .btn-ghost:hover{border-color:var(--blue); color:var(--blue); transform:translateY(-2px);}
+  .hero-stats{display:flex; gap:34px; flex-wrap:wrap;}
+  .hero-stats div{border-left:2px solid var(--line); padding-left:14px;}
+  .hero-stats .num{font-family:'JetBrains Mono', monospace; font-size:1.4rem; color:var(--blue); font-weight:600; display:block;}
+  .hero-stats .lbl{font-size:0.82rem; color:var(--gray);}
+
+  .stamp-stage{display:flex; justify-content:center; align-items:center; position:relative; z-index:2;}
+  .stamp{
+    width:min(320px, 80vw); height:min(320px, 80vw);
+    animation:stampDown 900ms cubic-bezier(.2,.9,.25,1.15) both;
+    animation-delay:.15s;
+  }
+  @keyframes stampDown{
+    0%{opacity:0; transform:scale(1.5) rotate(-14deg);}
+    60%{opacity:1;}
+    100%{opacity:1; transform:scale(1) rotate(-6deg);}
+  }
+
+  /* ---------- SECTION HEADERS ---------- */
+  .sec-head{max-width:640px; margin-bottom:52px;}
+  .sec-eyebrow{font-family:'JetBrains Mono', monospace; font-size:0.76rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; display:block; font-weight:600;}
+  .sec-head h2{font-size:clamp(1.7rem,3.2vw,2.5rem); color:var(--ink); font-weight:800;}
+  .sec-head p{color:var(--gray); margin-top:12px; font-size:1.02rem; max-width:56ch;}
+  .on-dark .sec-head h2, .on-dark .sec-eyebrow{color:var(--paper);}
+  .on-dark .sec-head p{color:rgba(251,253,255,0.72);}
+  .on-dark .sec-eyebrow{color:var(--blue-light);}
+
+  section.pad{padding:96px 0;}
+
+  /* ---------- HOW IT WORKS (ledger stepper) ---------- */
+  .ledger{
+    border:1px solid rgba(10,42,74,0.12);
+    border-radius:6px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 20px 50px -30px rgba(10,42,74,0.35);
+  }
+  .ledger-row{
+    display:grid; grid-template-columns:90px 1fr 160px; gap:20px; align-items:center;
+    padding:26px 30px; border-bottom:1px solid rgba(10,42,74,0.08);
+    transition:background .2s;
+  }
+  .ledger-row:last-child{border-bottom:none;}
+  .ledger-row:hover{background:rgba(24,104,183,0.05);}
+  .step-num{
+    font-family:'JetBrains Mono', monospace; font-size:0.85rem; color:var(--blue);
+    border:1px solid var(--line); border-radius:50%; width:44px; height:44px;
+    display:flex; align-items:center; justify-content:center; font-weight:600;
+  }
+  .step-body h3{font-family:'Sora',sans-serif; font-weight:700; font-size:1.05rem; color:var(--ink); margin-bottom:4px;}
+  .step-body p{color:#4E627B; font-size:0.94rem;}
+  .step-tag{
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; text-align:right;
+    color:var(--ink-softer); text-transform:uppercase; letter-spacing:0.08em;
+  }
+  @media(max-width:700px){
+    .ledger-row{grid-template-columns:56px 1fr; }
+    .step-tag{grid-column:2; text-align:left; margin-top:6px;}
+    .step-num{width:36px; height:36px; font-size:0.75rem;}
+  }
+
+  /* ---------- FEATURES ---------- */
+  .feat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:rgba(10,42,74,0.1); border:1px solid rgba(10,42,74,0.1); border-radius:6px; overflow:hidden;}
+  .feat-card{background:var(--paper); padding:34px 28px;}
+  .feat-icon{width:38px; height:38px; margin-bottom:18px; color:var(--blue);}
+  .feat-card h3{font-family:'Sora'; font-weight:700; font-size:1.05rem; margin-bottom:8px;}
+  .feat-card p{font-size:0.92rem; color:#4E627B;}
+  @media(max-width:820px){.feat-grid{grid-template-columns:1fr;}}
+
+  /* ---------- SECURITY ---------- */
+  .security-panel{
+    background:var(--ink); color:var(--paper);
+    border-radius:8px; padding:52px 44px;
+    display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:center;
+    min-width:0;
+  }
+  .security-panel > *{min-width:0;}
+  .badge-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .badge{
+    border:1px solid var(--line); border-radius:6px; padding:16px 10px; text-align:center;
+    font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:var(--blue-light);
+    letter-spacing:0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  @media(max-width:820px){
+    .security-panel{grid-template-columns:1fr; padding:40px 28px; gap:32px;}
+  }
+  @media(max-width:480px){
+    .wrap{padding:0 20px;}
+    .security-panel{padding:32px 22px; border-radius:6px;}
+    .badge-grid{grid-template-columns:repeat(2,1fr); gap:10px;}
+    .badge{font-size:0.7rem; padding:14px 8px; white-space:normal;}
+    .contact-panel{padding:32px 22px !important;}
+  }
+
+  /* ---------- BENEFITS ---------- */
+  .benefit-cols{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+  .benefit-card{background:#fff; border:1px solid rgba(10,42,74,0.1); border-radius:6px; padding:30px;}
+  .benefit-card h3{font-family:'Sora'; font-weight:700; font-size:1.25rem; margin-bottom:16px; color:var(--ink);}
+  .benefit-card ul{list-style:none;}
+  .benefit-card li{display:flex; gap:10px; padding:9px 0; border-bottom:1px dashed rgba(10,42,74,0.1); font-size:0.95rem; color:#2E4157;}
+  .benefit-card li:last-child{border-bottom:none;}
+  .benefit-card li::before{content:"✓"; color:var(--blue); font-weight:700;}
+  @media(max-width:700px){.benefit-cols{grid-template-columns:1fr;}}
+
+  /* ---------- TESTIMONIALS ---------- */
+  .test-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+  .test-card{background:var(--paper-dim); border-radius:6px; padding:28px; position:relative; border-top:3px solid var(--blue);}
+  .test-card p{font-size:0.96rem; color:#2E4157; margin-bottom:18px;}
+  .test-name{font-weight:600; font-size:0.92rem;}
+  .test-role{font-size:0.8rem; color:#5A7089;}
+  @media(max-width:820px){.test-grid{grid-template-columns:1fr;}}
+
+  /* ---------- FAQ ---------- */
+  .faq{max-width:820px;}
+  details{border-bottom:1px solid rgba(10,42,74,0.12); padding:20px 0;}
+  summary{cursor:pointer; font-weight:600; font-size:1.02rem; list-style:none; display:flex; justify-content:space-between; align-items:center; color:var(--ink);}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+"; font-family:'JetBrains Mono'; font-size:1.3rem; color:var(--blue); transition:transform .25s;}
+  details[open] summary::after{transform:rotate(45deg);}
+  details p{margin-top:12px; color:#4E627B; font-size:0.95rem; max-width:70ch;}
+
+  /* ---------- CONTACT ---------- */
+  .contact-panel{
+    background:var(--ink); border-radius:8px; padding:52px 44px; color:var(--paper);
+    display:grid; grid-template-columns:1fr 1fr; gap:48px;
+  }
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:0.82rem; font-family:'JetBrains Mono'; color:var(--blue-light); margin-bottom:6px; letter-spacing:0.04em;}
+  .field input, .field textarea{
+    width:100%; background:rgba(251,253,255,0.06); border:1px solid rgba(251,253,255,0.2); border-radius:4px;
+    padding:11px 13px; color:var(--paper); font-family:'Inter'; font-size:0.95rem;
+  }
+  .field input:focus, .field textarea:focus{outline:2px solid var(--blue-light); border-color:transparent;}
+  .contact-info{display:flex; flex-direction:column; justify-content:center; gap:20px;}
+  .contact-info .row{display:flex; gap:12px; align-items:flex-start; font-size:0.95rem; color:rgba(251,253,255,0.85);}
+  @media(max-width:820px){.contact-panel{grid-template-columns:1fr; padding:36px 26px;}}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--ink); color:rgba(251,253,255,0.65); padding:52px 0 26px; font-size:0.88rem;}
+  .foot-grid{display:grid; grid-template-columns:1.4fr repeat(3,1fr); gap:32px; margin-bottom:36px;}
+  .foot-col h4{color:var(--paper); font-family:'Sora'; font-weight:700; font-size:0.92rem; margin-bottom:14px;}
+  .foot-col a{display:block; padding:5px 0; color:rgba(251,253,255,0.6); transition:color .2s;}
+  .foot-col a:hover{color:var(--blue-light);}
+  .foot-bottom{border-top:1px solid rgba(251,253,255,0.1); padding-top:22px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;}}
+
+  ::selection{background:var(--blue); color:#fff;}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand">
+      <svg class="stamp-mini" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#2F5FFF" stroke-width="4"/><circle cx="50" cy="50" r="36" fill="none" stroke="#2F5FFF" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" font-family="Sora, sans-serif" font-weight="700" font-size="30" fill="#2F5FFF">T</text></svg>
+      <span class="brand-name">Trust<b>Pay</b></span>
+    </a>
+    <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.links').classList.toggle('open')">☰</button>
+    <nav class="links">
+      <a href="#how">How It Works</a>
+      <a href="#features">Features</a>
+      <a href="#security">Security</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+      <a href="dashboard.html" class="nav-cta">Get Started</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Escrow Protection Active</span>
+      <h1>A <em>Seal of Trust</em> Between Two Strangers</h1>
+      <p class="lead">TrustPay holds your money securely until the product or service arrives exactly as promised. The seller isn't paid until you've verified receipt — the modern digital version of a notarized paper seal.</p>
+      <div class="hero-actions">
+        <a href="#how" class="btn btn-primary">Start an Escrow</a>
+        <a href="#features" class="btn btn-ghost">See How It Works</a>
+      </div>
+      <div class="hero-stats">
+        <div><span class="num">৳0 Upfront</span><span class="lbl">Zero-risk advance payments</span></div>
+        <div><span class="num">5 Steps</span><span class="lbl">Transparent transaction tracking</span></div>
+        <div><span class="num">24/7</span><span class="lbl">Dispute resolution support</span></div>
+      </div>
+    </div>
+    <div class="stamp-stage">
+      <svg class="stamp" viewBox="0 0 300 300">
+        <defs>
+          <path id="ringPath" d="M 150,150 m -110,0 a 110,110 0 1,1 220,0 a 110,110 0 1,1 -220,0"/>
+          <filter id="stampShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#2F5FFF" flood-opacity="0.28"/>
+          </filter>
+        </defs>
+        <circle cx="150" cy="150" r="138" fill="#FFFFFF" filter="url(#stampShadow)"/>
+        <circle cx="150" cy="150" r="132" fill="none" stroke="#DCE6FF" stroke-width="1.5"/>
+        <circle cx="150" cy="150" r="118" fill="none" stroke="#2F5FFF" stroke-width="3"/>
+        <circle cx="150" cy="150" r="92" fill="none" stroke="#7A9EFF" stroke-width="1"/>
+        <text font-family="JetBrains Mono, monospace" font-size="12.5" fill="#2F5FFF" letter-spacing="4">
+          <textPath href="#ringPath" startOffset="2%">SECURE • NEUTRAL • VERIFIED • TRUSTPAY ESCROW •</textPath>
+        </text>
+        <text x="150" y="140" text-anchor="middle" font-family="Sora, sans-serif" font-weight="800" font-size="46" fill="#0B1220">TP</text>
+        <text x="150" y="172" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#5B677A" letter-spacing="2">EST. 2026</text>
+        <circle cx="150" cy="150" r="60" fill="none" stroke="#7A9EFF" stroke-width="1" stroke-dasharray="2 4" opacity="0.6"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Process</span>
+      <h2>A Sealed History for Every Transaction</h2>
+      <p>Every escrow follows a defined sequence — like a digital ledger where each step is recorded with a date and time.</p>
+    </div>
+    <div class="ledger">
+      <div class="ledger-row">
+        <div class="step-num">01</div>
+        <div class="step-body"><h3>Escrow Creation & Terms</h3><p>Both parties agree on the product description, price, delivery timeline, and inspection period.</p></div>
+        <div class="step-tag">Draft</div>
+      </div>
+      <div class="ledger-row">
+        <div class="step-num">02</div>
+        <div class="step-body"><h3>Buyer's Payment Deposit</h3><p>The buyer's funds move into TrustPay's secure wallet — never directly to the seller.</p></div>
+        <div class="step-tag">Paid</div>
+      </div>
+      <div class="ledger-row">
+        <div class="step-num">03</div>
+        <div class="step-body"><h3>Seller Ships the Item</h3><p>The seller uploads courier details along with a tracking number.</p></div>
+        <div class="step-tag">Shipped</div>
+      </div>
+      <div class="ledger-row">
+        <div class="step-num">04</div>
+        <div class="step-body"><h3>Inspection Period</h3><p>The buyer examines the item; if there's an issue, they can raise a dispute with evidence.</p></div>
+        <div class="step-tag">Inspection</div>
+      </div>
+      <div class="ledger-row">
+        <div class="step-num">05</div>
+        <div class="step-body"><h3>Funds Release or Refund</h3><p>If everything checks out, funds release to the seller; if a problem is proven, the buyer is refunded.</p></div>
+        <div class="step-tag">Completed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="features" style="background:var(--paper-dim);">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Features</span>
+      <h2>Everything You Need for Safe Buying and Selling</h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z"/></svg>
+        <h3>Secure Wallet</h3><p>Funds sit in a protected escrow wallet — untouched by anyone until the terms are met.</p>
+      </div>
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5h16v11H7l-3 3V5Z"/></svg>
+        <h3>Real-Time Chat</h3><p>Buyers and sellers can chat directly, sharing photos and files to align on every detail.</p>
+      </div>
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4M21 12c0 5-3.6 8.5-9 10-5.4-1.5-9-5-9-10V5l9-3 9 3v7Z"/></svg>
+        <h3>Evidence Upload</h3><p>Upload photos, videos, or PDFs to keep proof on hand for any dispute.</p>
+      </div>
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3>Neutral Dispute Resolution</h3><p>When there's disagreement, our admin panel reviews the evidence and makes a fair call.</p>
+      </div>
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 17.3l-5.4 3 1.4-6-4.6-4 6-.5L12 4l2.6 5.8 6 .5-4.6 4 1.4 6z"/></svg>
+        <h3>Reputation Score</h3><p>Every successful transaction adds a rating, building trust for future deals.</p>
+      </div>
+      <div class="feat-card">
+        <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10h18M7 3v4M17 3v4M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/></svg>
+        <h3>Complete Transaction History</h3><p>Download invoices for every transaction and track dates, amounts, and status.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="security">
+  <div class="wrap">
+    <div class="security-panel">
+      <div>
+        <span class="sec-eyebrow">Security</span>
+        <h2 style="color:var(--paper); font-size:1.9rem; margin-bottom:14px;">Bank-Grade Protection Technology</h2>
+        <p style="color:rgba(251,253,255,0.75); max-width:44ch;">Every transaction is encrypted, every session is monitored, and every action is logged — so both your data and your money stay protected.</p>
+      </div>
+      <div class="badge-grid">
+        <div class="badge">HTTPS / TLS</div>
+        <div class="badge">JWT Auth</div>
+        <div class="badge">Rate Limiting</div>
+        <div class="badge">Data Encryption</div>
+        <div class="badge">Audit Logs</div>
+        <div class="badge">CSRF / XSS Guard</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="background:var(--paper-dim);">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Benefits</span>
+      <h2>Peace of Mind — For Both Buyers and Sellers</h2>
+    </div>
+    <div class="benefit-cols">
+      <div class="benefit-card">
+        <h3>For Buyers</h3>
+        <ul>
+          <li>Funds aren't released to the seller until you receive the item</li>
+          <li>Inspect during the review period — reject or return if needed</li>
+          <li>Raise a dispute with evidence if something's wrong</li>
+          <li>Check seller ratings before deciding</li>
+        </ul>
+      </div>
+      <div class="benefit-card">
+        <h3>For Sellers</h3>
+        <ul>
+          <li>Payment is confirmed upfront, cutting the risk of fraud</li>
+          <li>Add a tracking number for clear proof of delivery</li>
+          <li>Build your reputation score with every successful sale</li>
+          <li>Funds release automatically after a set period</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Experience</span>
+      <h2>What Our Users Are Saying</h2>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <p>"I bought a second-hand laptop from a seller I'd never met. Without escrow, I wouldn't have felt nearly as confident."</p>
+        <div class="test-name">Rafia Haque</div><div class="test-role">Buyer, Dhaka</div>
+      </div>
+      <div class="test-card">
+        <p>"Since payment is confirmed upfront, I can deal with new customers without any hesitation now."</p>
+        <div class="test-name">Imran Kabir</div><div class="test-role">Seller, Chittagong</div>
+      </div>
+      <div class="test-card">
+        <p>"I had one dispute, but the admin reviewed the evidence and resolved it quickly."</p>
+        <div class="test-name">Sadia Akter</div><div class="test-role">Buyer, Sylhet</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="faq" style="background:var(--paper-dim);">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-eyebrow">Q&A</span>
+      <h2>Frequently Asked Questions</h2>
+    </div>
+    <div class="faq">
+      <details open>
+        <summary>How does escrow actually work?</summary>
+        <p>The buyer deposits funds into TrustPay's secure wallet. Once the seller ships the item and the buyer inspects and confirms it matches what was described, the funds are released to the seller.</p>
+      </details>
+      <details>
+        <summary>What happens if there's a dispute?</summary>
+        <p>Either the buyer or seller can raise a dispute with supporting evidence. Our admin panel reviews both sides' evidence and decides on a refund or release.</p>
+      </details>
+      <details>
+        <summary>What are the escrow fees?</summary>
+        <p>Fees depend on the type and size of the transaction, and are shown clearly before you make a payment.</p>
+      </details>
+      <details>
+        <summary>Is KYC required?</summary>
+        <p>It's optional to start, but for larger transactions, KYC may become mandatory in the future to strengthen security.</p>
+      </details>
+      <details>
+        <summary>Which payment methods are supported?</summary>
+        <p>We currently support manual/sandbox payments, with bKash, Nagad, bank transfer, and card payments coming soon.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="contact">
+  <div class="wrap">
+    <div class="contact-panel">
+      <div>
+        <span class="sec-eyebrow">Contact</span>
+        <h2 style="color:var(--paper); font-size:1.7rem; margin-bottom:20px;">Ask Us Anything</h2>
+        <form onsubmit="event.preventDefault(); this.querySelector('.submit-note').style.display='block';">
+          <div class="field"><label for="cname">Name</label><input id="cname" type="text" placeholder="Your name" required></div>
+          <div class="field"><label for="cemail">Email</label><input id="cemail" type="email" placeholder="you@example.com" required></div>
+          <div class="field"><label for="cmsg">Message</label><textarea id="cmsg" rows="4" placeholder="Write your question here" required></textarea></div>
+          <button type="submit" class="btn btn-primary">Send Message</button>
+          <p class="submit-note" style="display:none; margin-top:10px; color:var(--blue-light); font-size:0.88rem;">Thanks — we'll be in touch soon. (Demo form)</p>
+        </form>
+      </div>
+      <div class="contact-info">
+        <div class="row"><strong>Email:</strong>&nbsp;support@trustpay.example</div>
+        <div class="row"><strong>Phone:</strong>&nbsp;+880 1XXX-XXXXXX</div>
+        <div class="row"><strong>Office:</strong>&nbsp;Dhaka, Bangladesh</div>
+        <div class="row"><strong>Support hours:</strong>&nbsp;24/7 chat support</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <span class="brand-name" style="color:var(--paper);">Trust<b style="color:var(--blue-light);">Pay</b></span>
+        <p style="margin-top:12px; max-width:32ch; color:rgba(251,253,255,0.55);">A digital seal of trust for safe transactions between strangers.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Platform</h4>
+        <a href="#how">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#security">Security</a>
+      </div>
+      <div class="foot-col">
+        <h4>Support</h4>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+        <a href="#">Terms of Service</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#">Privacy Policy</a>
+        <a href="#">About Us</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 TrustPay. All rights reserved.</span>
+      <span class="mono" style="font-size:0.78rem; opacity:0.6;">ESCROW-BUILD v0.1 — MVP PROTOTYPE</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
