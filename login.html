@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Log In or Sign Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --red:#EF4444;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter',sans-serif; background:linear-gradient(180deg, var(--blue-pale) 0%, #FFFFFF 60%);
+    color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:56px 20px;
+  }
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:800; letter-spacing:-0.02em;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+  input{font-family:inherit;}
+
+  .brand{display:flex; align-items:center; gap:8px; font-size:1.3rem; font-weight:700; margin-bottom:8px;}
+  .brand b{color:var(--blue);}
+  .tag{font-family:'JetBrains Mono',monospace; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); background:#fff; border:1px solid var(--line); padding:6px 14px; border-radius:20px; margin-bottom:32px;}
+
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    padding:36px 32px; max-width:420px; width:100%;
+    box-shadow:0 24px 60px -30px rgba(11,18,32,0.18);
+  }
+
+  .switch{display:flex; background:var(--paper-dim); border-radius:10px; padding:4px; margin-bottom:26px;}
+  .switch button{
+    flex:1; padding:10px 0; border-radius:8px; font-weight:600; font-size:0.9rem;
+    background:transparent; color:var(--gray); transition:background .15s, color .15s;
+  }
+  .switch button.active{background:#fff; color:var(--ink); box-shadow:0 4px 14px -6px rgba(11,18,32,0.18);}
+
+  h1.title{font-size:1.4rem; margin-bottom:6px;}
+  .sub{color:var(--gray); font-size:0.9rem; margin-bottom:24px;}
+
+  .method-tabs{display:flex; gap:18px; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .method-tabs button{
+    background:none; padding:0 0 10px; font-size:0.86rem; font-weight:600; color:var(--gray);
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .method-tabs button.active{color:var(--blue); border-bottom-color:var(--blue);}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:0.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+  .field input{
+    width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:8px;
+    font-size:0.94rem; color:var(--ink); background:var(--paper-dim);
+  }
+  .field input:focus{outline:2px solid var(--blue-light); outline-offset:1px; background:#fff;}
+  .field .hint{font-size:0.78rem; color:var(--gray); margin-top:6px;}
+
+  .row-between{display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; font-size:0.84rem;}
+  .row-between a{color:var(--blue); font-weight:600;}
+  .row-between a:hover{text-decoration:underline;}
+
+  .primary-btn{
+    width:100%; background:var(--blue); color:#fff; padding:13px 0; border-radius:8px;
+    font-weight:700; font-size:0.95rem; box-shadow:0 14px 28px -14px rgba(47,95,255,0.55);
+    transition:background .15s;
+  }
+  .primary-btn:hover{background:#1E4CE0;}
+  .primary-btn:disabled{background:var(--gray); box-shadow:none; cursor:not-allowed; opacity:.6;}
+
+  .divider{display:flex; align-items:center; gap:12px; margin:22px 0; color:var(--gray); font-size:0.78rem;}
+  .divider::before, .divider::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  .google-btn{
+    width:100%; background:#fff; border:1px solid var(--line); color:var(--ink);
+    padding:12px 0; border-radius:8px; font-weight:600; font-size:0.9rem;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .google-btn:hover{border-color:var(--blue-light); box-shadow:0 10px 24px -16px rgba(11,18,32,0.25);}
+
+  .foot-note{text-align:center; font-size:0.82rem; color:var(--gray); margin-top:22px;}
+  .foot-note a{color:var(--blue); font-weight:600;}
+
+  /* OTP */
+  .otp-boxes{display:flex; gap:10px; margin-bottom:18px;}
+  .otp-boxes input{
+    width:100%; text-align:center; font-family:'JetBrains Mono',monospace; font-size:1.2rem;
+    padding:12px 0; border:1px solid var(--line); border-radius:8px; background:var(--paper-dim);
+  }
+  .otp-boxes input:focus{outline:2px solid var(--blue-light); background:#fff;}
+
+  .resend{font-size:0.82rem; color:var(--gray); text-align:center; margin-top:14px;}
+  .resend a{color:var(--blue); font-weight:600;}
+  .resend a.disabled{color:var(--gray); pointer-events:none;}
+
+  .back-step{display:inline-flex; align-items:center; gap:6px; font-size:0.84rem; color:var(--gray); margin-bottom:18px;}
+  .back-step:hover{color:var(--blue);}
+
+  .hidden{display:none !important;}
+
+  .back-link{margin-top:36px; color:var(--gray); font-size:0.88rem;}
+  .back-link:hover{color:var(--blue);}
+
+  @media(max-width:480px){ .card{padding:28px 22px;} }
+</style>
+</head>
+<body>
+
+  <div class="brand">Trust<b>Pay</b></div>
+  <div class="tag">Secure Escrow</div>
+
+  <div class="card">
+
+    <!-- STEP: Auth choice (login/signup) -->
+    <div id="step-auth">
+      <div class="switch">
+        <button id="tab-login" class="active" onclick="setMode('login')">Log In</button>
+        <button id="tab-signup" onclick="setMode('signup')">Sign Up</button>
+      </div>
+
+      <h1 class="title" id="auth-title">Welcome back</h1>
+      <p class="sub" id="auth-sub">Log in to manage your escrows and payments.</p>
+
+      <div class="method-tabs">
+        <button id="method-email" class="active" onclick="setMethod('email')">Email</button>
+        <button id="method-phone" onclick="setMethod('phone')">Phone</button>
+      </div>
+
+      <!-- Email form -->
+      <form id="form-email" onsubmit="return goVerifyOrDashboard(event)">
+        <div class="field" id="name-field" style="display:none;">
+          <label for="name">Full name</label>
+          <input type="text" id="name" placeholder="Your full name">
+        </div>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required minlength="8">
+          <div class="hint" id="pw-hint" style="display:none;">Use at least 8 characters.</div>
+        </div>
+        <div class="row-between">
+          <span></span>
+          <a href="#" id="forgot-link" onclick="goForgot(event)">Forgot password?</a>
+        </div>
+        <button type="submit" class="primary-btn" id="email-submit">Log In</button>
+      </form>
+
+      <!-- Phone form -->
+      <form id="form-phone" class="hidden" onsubmit="return goOtp(event)">
+        <div class="field" id="phone-name-field" style="display:none;">
+          <label for="name2">Full name</label>
+          <input type="text" id="name2" placeholder="Your full name">
+        </div>
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input type="tel" id="phone" placeholder="+880 1XXX-XXXXXX" required>
+          <div class="hint">We'll send a 6-digit code by SMS to verify this number.</div>
+        </div>
+        <button type="submit" class="primary-btn">Send Verification Code</button>
+      </form>
+
+      <div class="divider">or continue with</div>
+      <button class="google-btn" onclick="goDashboard()">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </button>
+
+      <p class="foot-note" id="foot-note">Don't have an account? <a href="#" onclick="setMode('signup');return false;">Sign up</a></p>
+    </div>
+
+    <!-- STEP: OTP verification -->
+    <div id="step-otp" class="hidden">
+      <a href="#" class="back-step" onclick="backToAuth(event)">← Back</a>
+      <h1 class="title">Enter verification code</h1>
+      <p class="sub">We sent a 6-digit code to <strong id="otp-target">your phone</strong>.</p>
+
+      <form onsubmit="return goDashboardFromOtp(event)">
+        <div class="otp-boxes">
+          <input maxlength="1" inputmode="numeric" required>
+          <input maxlength="1" inputmode="numeric" required>
+          <input maxlength="1" inputmode="numeric" required>
+          <input maxlength="1" inputmode="numeric" required>
+          <input maxlength="1" inputmode="numeric" required>
+          <input maxlength="1" inputmode="numeric" required>
+        </div>
+        <button type="submit" class="primary-btn">Verify & Continue</button>
+      </form>
+
+      <p class="resend">Didn't get a code? <a href="#" id="resend-link" onclick="resendCode(event)">Resend code</a></p>
+    </div>
+
+    <!-- STEP: Forgot password -->
+    <div id="step-forgot" class="hidden">
+      <a href="#" class="back-step" onclick="backToAuth(event)">← Back to log in</a>
+      <h1 class="title">Reset your password</h1>
+      <p class="sub">Enter your email and we'll send you a link to reset your password.</p>
+      <form onsubmit="return sendResetLink(event)">
+        <div class="field">
+          <label for="reset-email">Email address</label>
+          <input type="email" id="reset-email" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="primary-btn">Send Reset Link</button>
+      </form>
+    </div>
+
+    <!-- STEP: Reset sent confirmation -->
+    <div id="step-reset-sent" class="hidden" style="text-align:center;">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--blue-pale);color:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:1.4rem;">✓</div>
+      <h1 class="title">Check your email</h1>
+      <p class="sub">If an account exists for that address, a reset link is on its way.</p>
+      <a href="#" class="back-step" style="justify-content:center;" onclick="backToAuth(event)">← Back to log in</a>
+    </div>
+
+  </div>
+
+  <a href="index-13.html" class="back-link">← Back to homepage</a>
+
+<script>
+  let mode = 'login';   // login | signup
+  let method = 'email'; // email | phone
+
+  function setMode(m){
+    mode = m;
+    document.getElementById('tab-login').classList.toggle('active', m==='login');
+    document.getElementById('tab-signup').classList.toggle('active', m==='signup');
+    document.getElementById('auth-title').textContent = m==='login' ? 'Welcome back' : 'Create your account';
+    document.getElementById('auth-sub').textContent = m==='login'
+      ? 'Log in to manage your escrows and payments.'
+      : 'Buy or sell with confidence — your funds stay protected until the deal is done.';
+    document.getElementById('email-submit').textContent = m==='login' ? 'Log In' : 'Create Account';
+    document.getElementById('name-field').style.display = m==='signup' ? 'block' : 'none';
+    document.getElementById('phone-name-field').style.display = m==='signup' ? 'block' : 'none';
+    document.getElementById('pw-hint').style.display = m==='signup' ? 'block' : 'none';
+    document.getElementById('forgot-link').style.visibility = m==='login' ? 'visible' : 'hidden';
+    document.getElementById('foot-note').innerHTML = m==='login'
+      ? 'Don\'t have an account? <a href="#" onclick="setMode(\'signup\');return false;">Sign up</a>'
+      : 'Already have an account? <a href="#" onclick="setMode(\'login\');return false;">Log in</a>';
+  }
+
+  function setMethod(m){
+    method = m;
+    document.getElementById('method-email').classList.toggle('active', m==='email');
+    document.getElementById('method-phone').classList.toggle('active', m==='phone');
+    document.getElementById('form-email').classList.toggle('hidden', m!=='email');
+    document.getElementById('form-phone').classList.toggle('hidden', m!=='phone');
+  }
+
+  function showStep(id){
+    ['step-auth','step-otp','step-forgot','step-reset-sent'].forEach(s=>{
+      document.getElementById(s).classList.toggle('hidden', s!==id);
+    });
+  }
+
+  function goVerifyOrDashboard(e){
+    e.preventDefault();
+    goDashboard();
+    return false;
+  }
+
+  function goOtp(e){
+    e.preventDefault();
+    const phone = document.getElementById('phone').value || 'your phone';
+    document.getElementById('otp-target').textContent = phone;
+    showStep('step-otp');
+    return false;
+  }
+
+  function goDashboardFromOtp(e){
+    e.preventDefault();
+    goDashboard();
+    return false;
+  }
+
+  function resendCode(e){
+    e.preventDefault();
+    const link = document.getElementById('resend-link');
+    link.textContent = 'Code sent ✓';
+    link.classList.add('disabled');
+    setTimeout(()=>{ link.textContent='Resend code'; link.classList.remove('disabled'); }, 20000);
+  }
+
+  function goForgot(e){
+    e.preventDefault();
+    showStep('step-forgot');
+    return false;
+  }
+
+  function sendResetLink(e){
+    e.preventDefault();
+    showStep('step-reset-sent');
+    return false;
+  }
+
+  function backToAuth(e){
+    e.preventDefault();
+    showStep('step-auth');
+    return false;
+  }
+
+  function goDashboard(){
+    window.location.href = 'choose-role.html';
+  }
+
+  // auto-advance OTP boxes
+  document.addEventListener('input', function(e){
+    if(e.target.matches('.otp-boxes input')){
+      const boxes = Array.from(document.querySelectorAll('.otp-boxes input'));
+      const i = boxes.indexOf(e.target);
+      if(e.target.value && i < boxes.length-1){ boxes[i+1].focus(); }
+    }
+  });
+</script>
+
+</body>
+</html>
