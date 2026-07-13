@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --purple:#7C3AED;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Inter',sans-serif; background:var(--paper-dim); color:var(--ink); line-height:1.6;}
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:700; letter-spacing:-0.02em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+  input, select, textarea{font-family:inherit;}
+
+  .app{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+  .side{background:var(--ink); color:#fff; padding:26px 20px; position:sticky; top:0; height:100vh;}
+  .side .brand{font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:6px;}
+  .side .brand b{color:var(--blue-light);}
+  .side .admin-tag{font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:30px;}
+  .side nav a{display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:rgba(255,255,255,0.65); font-size:0.92rem; font-weight:500; margin-bottom:4px; transition:background .15s,color .15s; cursor:pointer;}
+  .side nav a:hover{background:rgba(255,255,255,0.06); color:#fff;}
+  .side nav a.active{background:var(--blue); color:#fff;}
+  .side nav .grp-label{font-family:'JetBrains Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin:22px 0 8px 12px;}
+  .side .badge-count{margin-left:auto; background:var(--red); color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:10px;}
+
+  .main{padding:32px 40px 60px;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; flex-wrap:wrap; gap:12px;}
+  .topbar h1{font-size:1.5rem;}
+  .topbar p{color:var(--gray); font-size:0.9rem; margin-top:4px;}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;}
+  .stat{background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px;}
+  .stat .lbl{font-size:0.82rem; color:var(--gray); margin-bottom:8px;}
+  .stat .val{font-family:'JetBrains Mono',monospace; font-size:1.7rem; font-weight:600;}
+  .stat.users .val{color:var(--blue);}
+  .stat.tx .val{color:var(--purple);}
+  .stat.revenue .val{color:var(--green);}
+  .stat.disputes .val{color:var(--red);}
+
+  .panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:24px;}
+  .panel h2{font-size:1.05rem; margin-bottom:16px;}
+  .panel .head-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; gap:12px; flex-wrap:wrap;}
+  .panel .head-row h2{margin-bottom:0;}
+
+  .search-box{padding:9px 14px; border:1px solid var(--line); border-radius:8px; font-size:0.86rem; background:var(--paper-dim); width:260px;}
+  .search-box:focus{outline:2px solid var(--blue-light); background:#fff;}
+  .filter-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .filter-tabs button{padding:7px 14px; border-radius:20px; font-size:0.78rem; font-weight:600; background:var(--paper-dim); color:var(--gray);}
+  .filter-tabs button.active{background:var(--blue); color:#fff;}
+
+  table{width:100%; border-collapse:collapse;}
+  th{text-align:left; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--gray); padding:10px 12px; border-bottom:1px solid var(--line);}
+  td{padding:12px; border-bottom:1px solid var(--line); font-size:0.88rem; vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:600;}
+  .badge.paid, .badge.waiting{background:#EFF6FF; color:var(--blue);}
+  .badge.accepted, .badge.inspection{background:#F5F3FF; color:var(--purple);}
+  .badge.shipped, .badge.delivered{background:#FFF7ED; color:var(--amber);}
+  .badge.completed{background:#ECFDF5; color:var(--green);}
+  .badge.disputed{background:#FEF2F2; color:var(--red);}
+  .badge.cancelled, .badge.refunded{background:#F3F4F6; color:var(--gray);}
+  .badge.verified{background:#ECFDF5; color:#15803D;}
+  .badge.unverified{background:#FFF7ED; color:#B45309;}
+  .badge.suspended{background:#FEF2F2; color:var(--red);}
+  .amt{font-family:'JetBrains Mono',monospace;}
+
+  .mini-btn{font-size:0.76rem; font-weight:600; padding:6px 11px; border-radius:6px; background:var(--paper-dim); color:var(--ink-soft); margin-right:4px; white-space:nowrap;}
+  .mini-btn:hover{background:var(--blue-pale); color:var(--blue);}
+  .mini-btn.danger:hover{background:#FEF2F2; color:var(--red);}
+  .mini-btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  .empty-note{color:var(--gray); font-size:0.88rem; text-align:center; padding:20px;}
+
+  /* Dispute cards */
+  .dispute-card{border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:16px;}
+  .dispute-card .top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .dispute-card .title{font-weight:600; font-size:0.96rem;}
+  .dispute-card .sub{font-size:0.8rem; color:var(--gray); margin-top:2px;}
+  .dispute-reason{background:var(--paper-dim); border-radius:8px; padding:12px 14px; font-size:0.86rem; margin:12px 0;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:0.8rem; font-weight:600; margin-bottom:5px; color:var(--ink-soft);}
+  .field textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:0.86rem; background:var(--paper-dim); min-height:60px; resize:vertical;}
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:8px; font-weight:600; font-size:0.84rem; cursor:pointer; border:none;}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:#16A34A;}
+  .btn-amber{background:var(--amber); color:#fff;}
+  .btn-amber:hover{background:#D97706;}
+  .btn:disabled{opacity:0.6; cursor:not-allowed;}
+  .resolved-note{background:#ECFDF5; color:#15803D; padding:10px 14px; border-radius:8px; font-size:0.84rem; margin-top:10px;}
+
+  .loading-gate{position:fixed; inset:0; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; z-index:999; font-size:0.9rem; color:var(--gray);}
+  .hidden{display:none !important;}
+  .denied{max-width:440px; margin:120px auto; text-align:center; background:#fff; border:1px solid var(--line); border-radius:12px; padding:36px 28px;}
+  .denied h2{margin-bottom:10px;}
+  .denied p{color:var(--gray); font-size:0.9rem;}
+
+  @media(max-width:960px){
+    .app{grid-template-columns:1fr;}
+    .side{position:relative; height:auto;}
+    .stats{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-gate" id="loading-gate">Loading…</div>
+
+<div id="denied-screen" class="hidden">
+  <div class="denied">
+    <h2>Access Denied</h2>
+    <p>Your account doesn't have admin permissions. Ask an existing admin to set your <span class="mono">role</span> field to <span class="mono">admin</span> in Firestore.</p>
+    <p style="margin-top:16px;"><a href="dashboard.html" style="color:var(--blue); font-weight:600;">← Back to Dashboard</a></p>
+  </div>
+</div>
+
+<div class="app" id="app-shell" style="display:none;">
+  <aside class="side">
+    <div class="brand">Trust<b>Pay</b></div>
+    <div class="admin-tag">Admin Panel</div>
+    <nav>
+      <a onclick="switchTab('overview')" id="nav-overview" class="active">Overview</a>
+      <a onclick="switchTab('users')" id="nav-users">Users</a>
+      <a onclick="switchTab('transactions')" id="nav-transactions">Transactions</a>
+      <a onclick="switchTab('disputes')" id="nav-disputes">Disputes <span class="badge-count hidden" id="dispute-count">0</span></a>
+      <div class="grp-label">Account</div>
+      <a href="login.html?logout=1">Logout</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Overview</h1>
+        <p>Manage users, transactions, and disputes across TrustPay</p>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview">
+      <div class="stats">
+        <div class="stat users"><div class="lbl">Total Users</div><div class="val" id="stat-users">0</div></div>
+        <div class="stat tx"><div class="lbl">Total Transactions</div><div class="val" id="stat-tx">0</div></div>
+        <div class="stat revenue"><div class="lbl">Fee Revenue</div><div class="val" id="stat-revenue">$0</div></div>
+        <div class="stat disputes"><div class="lbl">Open Disputes</div><div class="val" id="stat-disputes">0</div></div>
+      </div>
+      <div class="panel">
+        <h2>Recent Transactions</h2>
+        <table>
+          <thead><tr><th>Title</th><th>Buyer</th><th>Seller</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="overview-rows"><tr><td colspan="5" class="empty-note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="tab-users" class="hidden">
+      <div class="panel">
+        <div class="head-row">
+          <h2>All Users</h2>
+          <input type="text" class="search-box" id="user-search" placeholder="Search name or email…" oninput="renderUsers()">
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>KYC</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="user-rows"><tr><td colspan="6" class="empty-note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="tab-transactions" class="hidden">
+      <div class="panel" id="verify-panel" style="display:none;">
+        <h2>Payment Verifications <span id="verify-count" class="hidden" style="font-size:0.78rem; font-weight:700; color:#B45309; background:#FFF7ED; padding:3px 9px; border-radius:20px; margin-left:8px;"></span></h2>
+        <table>
+          <thead><tr><th>Title</th><th>Buyer</th><th>Method</th><th>Sender</th><th>Trx ID</th><th>Amount</th><th>Proof</th><th>Actions</th></tr></thead>
+          <tbody id="verify-rows"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="head-row">
+          <h2>All Transactions</h2>
+          <div class="filter-tabs" id="tx-filters">
+            <button class="active" data-f="all" onclick="setTxFilter('all')">All</button>
+            <button data-f="active" onclick="setTxFilter('active')">Active</button>
+            <button data-f="pending-verification" onclick="setTxFilter('pending-verification')">Pending Verification</button>
+            <button data-f="Completed" onclick="setTxFilter('Completed')">Completed</button>
+            <button data-f="Disputed" onclick="setTxFilter('Disputed')">Disputed</button>
+            <button data-f="Cancelled" onclick="setTxFilter('Cancelled')">Cancelled</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Title</th><th>Buyer</th><th>Seller</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tx-rows"><tr><td colspan="6" class="empty-note">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DISPUTES -->
+    <div id="tab-disputes" class="hidden">
+      <div class="panel">
+        <h2>Open Disputes</h2>
+        <div id="disputes-list"><p class="empty-note">Loading…</p></div>
+      </div>
+      <div class="panel">
+        <h2>Resolved Disputes</h2>
+        <div id="disputes-resolved-list"><p class="empty-note">Loading…</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiPGG2alqPUjxrkWmUJu1nTMKe28oztzA",
+    authDomain: "trust-pay-342b3.firebaseapp.com",
+    projectId: "trust-pay-342b3",
+    storageBucket: "trust-pay-342b3.firebasestorage.app",
+    messagingSenderId: "757581172953",
+    appId: "1:757581172953:web:28350ab5f7ec6f49fe6ec8"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let allUsers = [];
+  let allEscrows = [];
+  let txFilter = 'all';
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+  function money(n){ return '$' + (Number(n)||0).toFixed(2); }
+  function fmtDate(ts){
+    if(!ts || !ts.toDate) return '—';
+    return ts.toDate().toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+  }
+  function badgeClass(status){
+    const map = {
+      'Waiting Payment':'waiting','Paid':'paid','Accepted':'accepted','Shipped':'shipped',
+      'Delivered':'delivered','Inspection':'inspection','Completed':'completed',
+      'Disputed':'disputed','Refunded':'refunded','Cancelled':'cancelled'
+    };
+    return map[status] || 'waiting';
+  }
+
+  function switchTab(tab){
+    ['overview','users','transactions','disputes'].forEach(t=>{
+      document.getElementById('tab-'+t).classList.toggle('hidden', t!==tab);
+      document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+    });
+    const titles = {overview:'Overview', users:'Users', transactions:'Transactions', disputes:'Disputes'};
+    document.getElementById('page-title').textContent = titles[tab];
+  }
+
+  // ---------- Data loading ----------
+  async function loadAll(){
+    const [usersSnap, escrowsSnap] = await Promise.all([
+      db.collection('users').get(),
+      db.collection('escrows').get()
+    ]);
+    allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allEscrows = escrowsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    renderOverview();
+    renderUsers();
+    renderTransactions();
+    renderVerifications();
+    renderDisputes();
+  }
+
+  // ---------- Payment Verifications ----------
+  const PM_NAMES = { bkash: 'bKash', nagad: 'Nagad', bank: 'Bank Transfer' };
+  function renderVerifications(){
+    const pending = allEscrows.filter(r => r.status === 'Waiting Payment' && r.paymentVerificationPending);
+    const panel = document.getElementById('verify-panel');
+    const countChip = document.getElementById('verify-count');
+    if(pending.length === 0){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    countChip.textContent = pending.length;
+    countChip.classList.remove('hidden');
+    document.getElementById('verify-rows').innerHTML = pending.map(r => `
+      <tr id="verify-row-${r.id}">
+        <td><a href="escrow-detail.html?id=${r.id}" style="color:var(--blue); font-weight:600;">${escapeHtml(r.title||'Untitled')}</a></td>
+        <td>${escapeHtml(r.buyerEmail||'—')}</td>
+        <td>${escapeHtml(PM_NAMES[r.paymentMethod] || r.paymentMethod || '—')}</td>
+        <td class="mono">${escapeHtml(r.paymentSenderNumber||'—')}</td>
+        <td class="mono">${escapeHtml(r.paymentTrxId||'—')}</td>
+        <td class="amt">${money(r.total)}</td>
+        <td>${r.paymentProofUrl ? `<a href="${r.paymentProofUrl}" target="_blank" style="color:var(--blue); font-weight:600;">View</a>` : '—'}</td>
+        <td>
+          <button class="mini-btn" onclick="approvePayment('${r.id}')">Approve</button>
+          <button class="mini-btn danger" onclick="rejectPayment('${r.id}')">Reject</button>
+        </td>
+      </tr>`).join('');
+  }
+  async function approvePayment(id){
+    if(!confirm('Approve this payment? The escrow will move to Paid and the seller will be notified to accept the order.')) return;
+    await db.collection('escrows').doc(id).update({
+      status: 'Paid', paymentVerificationPending: false,
+      paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+      adminActionAt: firebase.firestore.FieldValue.serverTimestamp(), adminActionBy: currentUser.uid
+    });
+    const r = allEscrows.find(x=>x.id===id); if(r){ r.status = 'Paid'; r.paymentVerificationPending = false; }
+    renderVerifications(); renderTransactions(); renderOverview();
+  }
+  async function rejectPayment(id){
+    const reason = prompt('Why is this payment being rejected? This will be shown to the buyer.');
+    if(reason === null) return;
+    await db.collection('escrows').doc(id).update({
+      paymentVerificationPending: false, paymentRejected: true, paymentRejectionReason: reason || 'Details could not be verified.',
+      adminActionAt: firebase.firestore.FieldValue.serverTimestamp(), adminActionBy: currentUser.uid
+    });
+    const r = allEscrows.find(x=>x.id===id); if(r){ r.paymentVerificationPending = false; r.paymentRejected = true; }
+    renderVerifications(); renderTransactions();
+  }
+
+  // ---------- Overview ----------
+  function renderOverview(){
+    const completed = allEscrows.filter(r => r.status === 'Completed');
+    const disputed = allEscrows.filter(r => r.status === 'Disputed');
+    const feeRevenue = completed.reduce((sum,r)=> sum + (Number(r.fee)||0), 0);
+
+    document.getElementById('stat-users').textContent = allUsers.length;
+    document.getElementById('stat-tx').textContent = allEscrows.length;
+    document.getElementById('stat-revenue').textContent = money(feeRevenue);
+    document.getElementById('stat-disputes').textContent = disputed.length;
+
+    const dc = document.getElementById('dispute-count');
+    if(disputed.length > 0){ dc.textContent = disputed.length; dc.classList.remove('hidden'); }
+    else dc.classList.add('hidden');
+
+    const rows = [...allEscrows].sort((a,b)=> (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)).slice(0,8);
+    const el = document.getElementById('overview-rows');
+    el.innerHTML = rows.length === 0 ? '<tr><td colspan="5" class="empty-note">No transactions yet.</td></tr>' :
+      rows.map(r => `<tr>
+          <td><a href="escrow-detail.html?id=${r.id}" style="color:var(--blue); font-weight:600;">${escapeHtml(r.title||'Untitled')}</a></td>
+          <td>${escapeHtml(r.buyerEmail||'—')}</td>
+          <td>${escapeHtml(r.sellerEmail||'—')}</td>
+          <td class="amt">${money(r.total)}</td>
+          <td><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status||'Draft')}</span></td>
+        </tr>`).join('');
+  }
+
+  // ---------- Users ----------
+  function renderUsers(){
+    const q = (document.getElementById('user-search').value||'').toLowerCase();
+    const filtered = allUsers.filter(u =>
+      !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+    );
+    const el = document.getElementById('user-rows');
+    if(filtered.length === 0){
+      el.innerHTML = '<tr><td colspan="6" class="empty-note">No users found.</td></tr>';
+      return;
+    }
+    el.innerHTML = filtered.map(u => `
+      <tr id="user-row-${u.id}">
+        <td>${escapeHtml(u.name||'—')}</td>
+        <td>${escapeHtml(u.email||'—')}</td>
+        <td>${escapeHtml(u.role||'—')}</td>
+        <td><span class="badge ${u.kycVerified?'verified':'unverified'}">${u.kycVerified?'Verified':'Unverified'}</span></td>
+        <td>${u.suspended ? '<span class="badge suspended">Suspended</span>' : '<span class="badge verified">Active</span>'}</td>
+        <td>
+          ${u.kycVerified ? '' : `<button class="mini-btn" onclick="verifyUser('${u.id}')">Verify KYC</button>`}
+          ${u.suspended
+            ? `<button class="mini-btn" onclick="setSuspended('${u.id}', false)">Unsuspend</button>`
+            : `<button class="mini-btn danger" onclick="setSuspended('${u.id}', true)">Suspend</button>`}
+          <button class="mini-btn danger" onclick="deleteUser('${u.id}')">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function verifyUser(uid){
+    await db.collection('users').doc(uid).update({ kycVerified: true });
+    const u = allUsers.find(x=>x.id===uid); if(u) u.kycVerified = true;
+    renderUsers();
+  }
+  async function setSuspended(uid, val){
+    await db.collection('users').doc(uid).update({ suspended: val });
+    const u = allUsers.find(x=>x.id===uid); if(u) u.suspended = val;
+    renderUsers();
+  }
+  async function deleteUser(uid){
+    if(!confirm('Delete this user profile? This removes their TrustPay profile data (not their login account).')) return;
+    await db.collection('users').doc(uid).delete();
+    allUsers = allUsers.filter(x=>x.id!==uid);
+    renderUsers();
+    renderOverview();
+  }
+
+  // ---------- Transactions ----------
+  function setTxFilter(f){
+    txFilter = f;
+    document.querySelectorAll('#tx-filters button').forEach(b => b.classList.toggle('active', b.dataset.f===f));
+    renderTransactions();
+  }
+  function renderTransactions(){
+    const activeStatuses = ['Waiting Payment','Paid','Accepted','Shipped','Delivered','Inspection'];
+    let rows = allEscrows;
+    if(txFilter === 'active') rows = rows.filter(r => activeStatuses.includes(r.status));
+    else if(txFilter === 'pending-verification') rows = rows.filter(r => r.status === 'Waiting Payment' && r.paymentVerificationPending);
+    else if(txFilter !== 'all') rows = rows.filter(r => r.status === txFilter);
+
+    const el = document.getElementById('tx-rows');
+    if(rows.length === 0){
+      el.innerHTML = '<tr><td colspan="6" class="empty-note">No transactions in this filter.</td></tr>';
+      return;
+    }
+    el.innerHTML = rows.map(r => `
+      <tr id="tx-row-${r.id}">
+        <td><a href="escrow-detail.html?id=${r.id}" style="color:var(--blue); font-weight:600;">${escapeHtml(r.title||'Untitled')}</a></td>
+        <td>${escapeHtml(r.buyerEmail||'—')}</td>
+        <td>${escapeHtml(r.sellerEmail||'—')}</td>
+        <td class="amt">${money(r.total)}</td>
+        <td><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status||'Draft')}</span>${r.paymentVerificationPending ? ' <span style="font-size:0.7rem; font-weight:700; color:#B45309;">⏳ verify</span>' : ''}</td>
+        <td>
+          <a class="mini-btn" href="escrow-detail.html?id=${r.id}">View</a>
+          ${['Completed','Cancelled','Refunded'].includes(r.status) ? '' : `<button class="mini-btn danger" onclick="adminCancel('${r.id}')">Cancel</button>`}
+          ${r.status === 'Completed' ? `<button class="mini-btn danger" onclick="adminRefund('${r.id}')">Refund</button>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  async function adminCancel(id){
+    if(!confirm('Cancel this transaction as admin?')) return;
+    await db.collection('escrows').doc(id).update({ status:'Cancelled', adminActionAt: firebase.firestore.FieldValue.serverTimestamp(), adminActionBy: currentUser.uid });
+    const r = allEscrows.find(x=>x.id===id); if(r) r.status = 'Cancelled';
+    renderTransactions(); renderOverview();
+  }
+  async function adminRefund(id){
+    if(!confirm('Refund this transaction to the buyer?')) return;
+    await db.collection('escrows').doc(id).update({ status:'Refunded', adminActionAt: firebase.firestore.FieldValue.serverTimestamp(), adminActionBy: currentUser.uid });
+    const r = allEscrows.find(x=>x.id===id); if(r) r.status = 'Refunded';
+    renderTransactions(); renderOverview();
+  }
+
+  // ---------- Disputes ----------
+  function renderDisputes(){
+    const open = allEscrows.filter(r => r.status === 'Disputed');
+    const resolved = allEscrows.filter(r => ['Completed','Refunded'].includes(r.status) && r.disputeReason);
+
+    const openEl = document.getElementById('disputes-list');
+    openEl.innerHTML = open.length === 0 ? '<p class="empty-note">No open disputes 🎉</p>' :
+      open.map(r => `
+        <div class="dispute-card" id="dispute-${r.id}">
+          <div class="top">
+            <div>
+              <div class="title">${escapeHtml(r.title||'Untitled')}</div>
+              <div class="sub">Buyer: ${escapeHtml(r.buyerEmail||'—')} · Seller: ${escapeHtml(r.sellerEmail||'—')} · ${money(r.total)}</div>
+            </div>
+            <span class="badge disputed">Disputed</span>
+          </div>
+          <div class="dispute-reason"><strong>Reason:</strong> ${escapeHtml(r.disputeReason||'No reason provided.')}</div>
+          <p class="sub" style="margin-bottom:10px;"><a href="chat.html?id=${r.id}" style="color:var(--blue); font-weight:600;">View chat & evidence →</a></p>
+          <div class="field">
+            <label>Admin notes (optional)</label>
+            <textarea id="notes-${r.id}" placeholder="Reasoning for your decision…"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-green" onclick="resolveDispute('${r.id}', 'release')">Release to Seller</button>
+            <button class="btn btn-amber" onclick="resolveDispute('${r.id}', 'refund')">Refund Buyer</button>
+          </div>
+        </div>`).join('');
+
+    const resEl = document.getElementById('disputes-resolved-list');
+    resEl.innerHTML = resolved.length === 0 ? '<p class="empty-note">No resolved disputes yet.</p>' :
+      resolved.map(r => `
+        <div class="dispute-card">
+          <div class="top">
+            <div>
+              <div class="title">${escapeHtml(r.title||'Untitled')}</div>
+              <div class="sub">Buyer: ${escapeHtml(r.buyerEmail||'—')} · Seller: ${escapeHtml(r.sellerEmail||'—')} · ${money(r.total)}</div>
+            </div>
+            <span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status)}</span>
+          </div>
+          <div class="dispute-reason"><strong>Reason:</strong> ${escapeHtml(r.disputeReason||'—')}</div>
+          <div class="resolved-note">Resolved: ${r.status === 'Completed' ? 'Released to seller' : 'Refunded to buyer'} — ${fmtDate(r.adminActionAt)}${r.adminNotes ? ' · ' + escapeHtml(r.adminNotes) : ''}</div>
+        </div>`).join('');
+  }
+
+  async function resolveDispute(id, decision){
+    const notesEl = document.getElementById('notes-'+id);
+    const notes = notesEl ? notesEl.value.trim() : '';
+    const label = decision === 'release' ? 'release payment to the seller' : 'refund the buyer';
+    if(!confirm(`Are you sure you want to ${label}? This is final.`)) return;
+
+    const card = document.getElementById('dispute-'+id);
+    if(card) card.querySelectorAll('button').forEach(b=>b.disabled=true);
+
+    try{
+      await db.collection('escrows').doc(id).update({
+        status: decision === 'release' ? 'Completed' : 'Refunded',
+        adminNotes: notes || null,
+        adminActionAt: firebase.firestore.FieldValue.serverTimestamp(),
+        adminActionBy: currentUser.uid
+      });
+      const r = allEscrows.find(x=>x.id===id);
+      if(r){ r.status = decision === 'release' ? 'Completed' : 'Refunded'; r.adminNotes = notes; }
+      renderDisputes(); renderOverview(); renderTransactions();
+    } catch(err){
+      alert('Could not resolve dispute: ' + (err.message||'please try again.'));
+      if(card) card.querySelectorAll('button').forEach(b=>b.disabled=false);
+    }
+  }
+
+  // ---------- Init ----------
+  auth.onAuthStateChanged(async function(user){
+    if(!user){
+      window.location.href = 'login.html';
+      return;
+    }
+    currentUser = user;
+    try{
+      const snap = await db.collection('users').doc(user.uid).get();
+      const data = snap.exists ? snap.data() : {};
+      if(data.role !== 'admin'){
+        document.getElementById('loading-gate').style.display = 'none';
+        document.getElementById('denied-screen').classList.remove('hidden');
+        return;
+      }
+      await loadAll();
+    } catch(err){
+      console.error(err);
+    }
+    document.getElementById('loading-gate').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'grid';
+  });
+</script>
+
+</body>
+</html>

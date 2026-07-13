@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Buy and Sell Safely, Money Held Until You're Sure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --red:#EF4444;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--paper); line-height:1.5;}
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:800; letter-spacing:-0.02em;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 24px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace; font-size:0.76rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); font-weight:600;}
+
+  /* ---------- Nav ---------- */
+  header{position:sticky; top:0; z-index:50; background:rgba(255,255,255,0.86); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+  nav{display:flex; align-items:center; justify-content:space-between; padding:16px 0;}
+  .brand{display:flex; align-items:center; gap:8px; font-family:'Sora',sans-serif; font-size:1.2rem; font-weight:700;}
+  .brand b{color:var(--blue);}
+  .nav-links{display:flex; gap:30px; font-size:0.92rem; font-weight:600; color:var(--ink-softer);}
+  .nav-links a:hover{color:var(--blue);}
+  .nav-cta{display:flex; gap:12px; align-items:center;}
+  .btn{display:inline-flex; align-items:center; justify-content:center; padding:11px 22px; border-radius:8px; font-weight:700; font-size:0.9rem; transition:all .15s;}
+  .btn-primary{background:var(--blue); color:#fff; box-shadow:0 14px 28px -14px rgba(47,95,255,0.5);}
+  .btn-primary:hover{background:#1E4CE0;}
+  .btn-ghost{color:var(--ink-soft);}
+  .btn-ghost:hover{color:var(--blue);}
+  .menu-toggle{display:none; font-size:1.4rem; background:none;}
+
+  @media(max-width:860px){
+    .nav-links{display:none;}
+    .menu-toggle{display:block;}
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{padding:88px 0 60px; background:linear-gradient(180deg, var(--blue-pale) 0%, #FFFFFF 78%); position:relative; overflow:hidden;}
+  .hero-grid{display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;}
+  @media(max-width:920px){.hero-grid{grid-template-columns:1fr;} }
+  .hero-tag{display:inline-block; background:#fff; border:1px solid var(--line); padding:6px 14px; border-radius:20px; margin-bottom:22px;}
+  h1.headline{font-size:3rem; line-height:1.08; margin-bottom:20px;}
+  @media(max-width:560px){h1.headline{font-size:2.1rem;}}
+  .headline .accent{color:var(--blue);}
+  .hero-sub{font-size:1.08rem; color:var(--gray); max-width:480px; margin-bottom:32px;}
+  .hero-actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:34px;}
+  .btn-lg{padding:14px 26px; font-size:0.96rem; border-radius:10px;}
+  .trust-row{display:flex; gap:26px; flex-wrap:wrap; font-size:0.82rem; color:var(--gray);}
+  .trust-row span{display:flex; align-items:center; gap:6px;}
+  .trust-row b{color:var(--ink);}
+
+  /* Signature element: live escrow status card */
+  .escrow-preview{background:#fff; border:1px solid var(--line); border-radius:18px; box-shadow:0 30px 70px -30px rgba(11,18,32,0.25); overflow:hidden;}
+  .ep-head{display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line);}
+  .ep-id{font-size:0.78rem; color:var(--gray);}
+  .ep-badge{font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:20px; background:var(--blue-pale); color:var(--blue);}
+  .ep-body{padding:20px;}
+  .ep-title{font-weight:700; margin-bottom:2px;}
+  .ep-price{font-size:1.6rem; font-weight:800; margin:8px 0 18px;}
+  .ep-steps{display:flex; flex-direction:column; gap:0;}
+  .ep-step{display:flex; align-items:flex-start; gap:12px; position:relative; padding-bottom:20px;}
+  .ep-step:last-child{padding-bottom:0;}
+  .ep-dot{width:22px; height:22px; border-radius:50%; background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; flex-shrink:0; z-index:1;}
+  .ep-step.pending .ep-dot{background:var(--paper-dim); color:var(--gray); border:1px solid var(--line);}
+  .ep-step:not(:last-child)::before{content:""; position:absolute; left:10.5px; top:22px; bottom:0; width:2px; background:var(--line);}
+  .ep-step:not(:last-child).done::before{background:var(--blue-light);}
+  .ep-step-body{padding-top:1px;}
+  .ep-step-title{font-size:0.88rem; font-weight:700;}
+  .ep-step.pending .ep-step-title{color:var(--gray); font-weight:600;}
+  .ep-step-note{font-size:0.76rem; color:var(--gray);}
+  .ep-foot{padding:14px 20px; background:var(--paper-dim); font-size:0.78rem; color:var(--ink-softer); display:flex; align-items:center; gap:8px;}
+
+  /* ---------- Section shell ---------- */
+  section{padding:80px 0;}
+  .section-head{max-width:640px; margin:0 auto 48px; text-align:center;}
+  .section-head .eyebrow{display:block; margin-bottom:10px;}
+  .section-head h2{font-size:2rem; margin-bottom:12px;}
+  .section-head p{color:var(--gray); font-size:1rem;}
+
+  /* ---------- How it works ---------- */
+  .steps{display:grid; grid-template-columns:repeat(4,1fr); gap:24px;}
+  @media(max-width:920px){.steps{grid-template-columns:1fr 1fr;}}
+  @media(max-width:560px){.steps{grid-template-columns:1fr;}}
+  .step-card{background:var(--paper-dim); border-radius:16px; padding:26px 22px; position:relative;}
+  .step-num{font-family:'JetBrains Mono',monospace; font-size:0.85rem; font-weight:600; color:var(--blue); margin-bottom:14px;}
+  .step-card h3{font-size:1.05rem; margin-bottom:8px;}
+  .step-card p{font-size:0.86rem; color:var(--gray);}
+  .step-arrow{position:absolute; right:-24px; top:50%; transform:translateY(-50%); color:var(--blue-light); font-size:1.2rem;}
+  @media(max-width:920px){.step-arrow{display:none;}}
+
+  /* ---------- Features / Benefits ---------- */
+  .feat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+  @media(max-width:860px){.feat-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:560px){.feat-grid{grid-template-columns:1fr;}}
+  .feat-card{border:1px solid var(--line); border-radius:14px; padding:24px; transition:box-shadow .15s, transform .15s;}
+  .feat-card:hover{box-shadow:0 20px 40px -24px rgba(11,18,32,0.2); transform:translateY(-2px);}
+  .feat-icon{width:38px; height:38px; border-radius:9px; background:var(--blue-pale); color:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; margin-bottom:14px;}
+  .feat-card h3{font-size:1rem; margin-bottom:6px;}
+  .feat-card p{font-size:0.85rem; color:var(--gray);}
+
+  .bg-dim{background:var(--paper-dim);}
+
+  .benefit-cols{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+  @media(max-width:760px){.benefit-cols{grid-template-columns:1fr;}}
+  .benefit-card{background:#fff; border:1px solid var(--line); border-radius:16px; padding:30px;}
+  .benefit-card .role-tag{font-size:0.76rem; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; display:block;}
+  .benefit-card h3{font-size:1.2rem; margin-bottom:16px;}
+  .benefit-card ul{list-style:none;}
+  .benefit-card li{display:flex; gap:10px; font-size:0.9rem; color:var(--ink-softer); margin-bottom:12px;}
+  .benefit-card li::before{content:"✓"; color:var(--green); font-weight:700;}
+
+  /* ---------- Security ---------- */
+  .sec-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+  @media(max-width:860px){.sec-grid{grid-template-columns:1fr 1fr;}}
+  .sec-item{text-align:center; padding:24px 14px;}
+  .sec-item .feat-icon{margin:0 auto 14px;}
+  .sec-item h3{font-size:0.92rem; margin-bottom:4px;}
+  .sec-item p{font-size:0.78rem; color:var(--gray);}
+
+  /* ---------- Pricing ---------- */
+  .price-card{max-width:420px; margin:0 auto; background:#fff; border:1px solid var(--line); border-radius:18px; padding:36px; text-align:center; box-shadow:0 24px 60px -30px rgba(11,18,32,0.16);}
+  .price-num{font-size:2.6rem; font-weight:800; font-family:'Sora',sans-serif; margin:10px 0 4px;}
+  .price-num span{font-size:1rem; color:var(--gray); font-weight:600;}
+  .price-note{font-size:0.86rem; color:var(--gray); margin-bottom:24px;}
+  .price-list{list-style:none; text-align:left; margin-bottom:28px;}
+  .price-list li{display:flex; gap:10px; font-size:0.9rem; color:var(--ink-softer); padding:9px 0; border-top:1px solid var(--line);}
+  .price-list li:first-child{border-top:none;}
+  .price-list li::before{content:"✓"; color:var(--green); font-weight:700;}
+
+  /* ---------- Testimonials ---------- */
+  .testi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+  @media(max-width:860px){.testi-grid{grid-template-columns:1fr;}}
+  .testi-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px;}
+  .testi-stars{color:#F5A623; font-size:0.9rem; margin-bottom:12px;}
+  .testi-card p{font-size:0.9rem; color:var(--ink-softer); margin-bottom:18px;}
+  .testi-person{display:flex; align-items:center; gap:10px;}
+  .testi-avatar{width:36px; height:36px; border-radius:50%; background:var(--blue-pale); color:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82rem;}
+  .testi-name{font-size:0.86rem; font-weight:700;}
+  .testi-role{font-size:0.76rem; color:var(--gray);}
+
+  /* ---------- FAQ ---------- */
+  .faq-list{max-width:720px; margin:0 auto;}
+  .faq-item{border-bottom:1px solid var(--line);}
+  .faq-q{width:100%; display:flex; justify-content:space-between; align-items:center; padding:20px 4px; background:none; text-align:left; font-size:0.98rem; font-weight:700; color:var(--ink);}
+  .faq-q .icon{color:var(--blue); font-size:1.2rem; transition:transform .2s; flex-shrink:0; margin-left:16px;}
+  .faq-item.open .faq-q .icon{transform:rotate(45deg);}
+  .faq-a{max-height:0; overflow:hidden; transition:max-height .25s ease;}
+  .faq-a p{font-size:0.9rem; color:var(--gray); padding:0 4px 20px;}
+
+  /* ---------- Contact ---------- */
+  .contact-grid{display:grid; grid-template-columns:0.9fr 1.1fr; gap:48px; align-items:start;}
+  @media(max-width:820px){.contact-grid{grid-template-columns:1fr;}}
+  .contact-info h3{font-size:1.3rem; margin-bottom:12px;}
+  .contact-info p{color:var(--gray); font-size:0.92rem; margin-bottom:22px;}
+  .contact-line{display:flex; gap:12px; align-items:center; font-size:0.9rem; margin-bottom:14px;}
+  .contact-line b{color:var(--blue);}
+  .contact-form{background:var(--paper-dim); border-radius:16px; padding:28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:0.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+  .field input, .field textarea{width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:8px; font-size:0.92rem; font-family:inherit; background:#fff; resize:vertical;}
+  .field input:focus, .field textarea:focus{outline:2px solid var(--blue-light); outline-offset:1px;}
+  .contact-status{font-size:0.85rem; margin-top:12px; display:none;}
+  .contact-status.show{display:block;}
+
+  /* ---------- Footer ---------- */
+  footer{background:var(--ink); color:#B9C3D6; padding:56px 0 28px;}
+  .foot-grid{display:grid; grid-template-columns:1.4fr repeat(3,1fr); gap:32px; margin-bottom:40px;}
+  @media(max-width:760px){.foot-grid{grid-template-columns:1fr 1fr;}}
+  .foot-brand{color:#fff; font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:12px;}
+  .foot-brand b{color:var(--blue-light);}
+  .foot-desc{font-size:0.85rem; max-width:260px; line-height:1.6;}
+  .foot-col h4{color:#fff; font-size:0.86rem; margin-bottom:14px;}
+  .foot-col a{display:block; font-size:0.85rem; margin-bottom:10px; color:#B9C3D6;}
+  .foot-col a:hover{color:#fff;}
+  .foot-bottom{border-top:1px solid rgba(255,255,255,0.1); padding-top:22px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:0.78rem; color:#7C8AA3;}
+
+  .reveal{opacity:0; transform:translateY(16px); transition:opacity .5s ease, transform .5s ease;}
+  .reveal.in{opacity:1; transform:translateY(0);}
+  @media (prefers-reduced-motion: reduce){ .reveal{opacity:1; transform:none; transition:none;} html{scroll-behavior:auto;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <div class="brand">Trust<b>Pay</b></div>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#security">Security</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="nav-cta">
+        <a href="login.html" class="btn btn-ghost">Log in</a>
+        <a href="login.html" class="btn btn-primary">Get started</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="hero-tag mono" style="font-family:'JetBrains Mono',monospace; font-size:0.76rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue);">Secure Escrow for Online Deals</div>
+      <h1 class="headline">Buy and sell with strangers, <span class="accent">without the risk.</span></h1>
+      <p class="hero-sub">TrustPay holds the buyer's payment until the product arrives and passes inspection. The seller only gets paid once everyone is satisfied — and if something goes wrong, our team steps in to decide.</p>
+      <div class="hero-actions">
+        <a href="login.html" class="btn btn-primary btn-lg">Create your first escrow</a>
+        <a href="#how" class="btn btn-ghost btn-lg" style="border:1px solid var(--line);">See how it works</a>
+      </div>
+      <div class="trust-row">
+        <span>🔒 <b>Funds held</b> in escrow, not with either party</span>
+        <span>🧾 <b>Evidence-based</b> dispute resolution</span>
+        <span>⚡ <b>2%</b> flat fee, no hidden charges</span>
+      </div>
+    </div>
+
+    <div class="escrow-preview reveal">
+      <div class="ep-head">
+        <div>
+          <div class="ep-id mono">ESCROW #TP-2291</div>
+        </div>
+        <div class="ep-badge">Inspection</div>
+      </div>
+      <div class="ep-body">
+        <div class="ep-title">iPhone 13 Pro — 256GB</div>
+        <div class="ep-price">৳ 68,000</div>
+        <div class="ep-steps">
+          <div class="ep-step done">
+            <div class="ep-dot">✓</div>
+            <div class="ep-step-body"><div class="ep-step-title">Payment secured</div><div class="ep-step-note">Buyer's funds held by TrustPay</div></div>
+          </div>
+          <div class="ep-step done">
+            <div class="ep-dot">✓</div>
+            <div class="ep-step-body"><div class="ep-step-title">Item shipped</div><div class="ep-step-note">Tracking added by seller</div></div>
+          </div>
+          <div class="ep-step">
+            <div class="ep-dot">●</div>
+            <div class="ep-step-body"><div class="ep-step-title">Buyer inspecting</div><div class="ep-step-note">48-hour inspection window</div></div>
+          </div>
+          <div class="ep-step pending">
+            <div class="ep-dot">4</div>
+            <div class="ep-step-body"><div class="ep-step-title">Payment released</div><div class="ep-step-note">Seller receives funds</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ep-foot">🔔 Buyer has 22 hours left to confirm or raise a dispute.</div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Four steps, one safety net</h2>
+      <p>Every escrow follows the same protected path from agreement to payout.</p>
+    </div>
+    <div class="steps">
+      <div class="step-card"><div class="step-num">01</div><h3>Create the escrow</h3><p>Buyer and seller agree on item, price, delivery time, and inspection period.</p><div class="step-arrow">→</div></div>
+      <div class="step-card"><div class="step-num">02</div><h3>Buyer pays TrustPay</h3><p>Payment is held securely — the seller isn't paid directly, and can't be paid early.</p><div class="step-arrow">→</div></div>
+      <div class="step-card"><div class="step-num">03</div><h3>Seller ships</h3><p>Tracking info is added, and the buyer is notified the moment it's on the way.</p><div class="step-arrow">→</div></div>
+      <div class="step-card"><h3>Buyer confirms</h3><p>Funds release to the seller — or, if there's a problem, our team reviews the evidence.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="bg-dim">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Everything a safe deal needs</h2>
+      <p>Built for the moments that usually go wrong in a stranger-to-stranger sale.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-icon">₿</div><h3>Held payments</h3><p>Money sits with TrustPay, not the seller, until delivery is confirmed.</p></div>
+      <div class="feat-card"><div class="feat-icon">💬</div><h3>Buyer–seller chat</h3><p>Message directly inside each escrow, with photos and files attached to the deal.</p></div>
+      <div class="feat-card"><div class="feat-icon">📦</div><h3>Shipment tracking</h3><p>Sellers add courier and tracking number; buyers see delivery status live.</p></div>
+      <div class="feat-card"><div class="feat-icon">🧾</div><h3>Evidence upload</h3><p>Attach images, videos, or PDFs to back up a claim before or during a dispute.</p></div>
+      <div class="feat-card"><div class="feat-icon">⚖️</div><h3>Fair disputes</h3><p>If buyer and seller disagree, TrustPay's team reviews evidence and decides.</p></div>
+      <div class="feat-card"><div class="feat-icon">⭐</div><h3>Reputation scores</h3><p>Every completed deal adds to a public rating, so trust builds over time.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="benefits">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Benefits</span>
+      <h2>Protection for both sides of the deal</h2>
+    </div>
+    <div class="benefit-cols">
+      <div class="benefit-card">
+        <span class="role-tag">For buyers</span>
+        <h3>Never pay before you're sure</h3>
+        <ul>
+          <li>Your money isn't released until you've inspected the item</li>
+          <li>Full delivery and tracking visibility in one place</li>
+          <li>A clear path to a refund if the item isn't as described</li>
+          <li>Check a seller's rating before you commit</li>
+        </ul>
+      </div>
+      <div class="benefit-card">
+        <span class="role-tag">For sellers</span>
+        <h3>Ship knowing you'll get paid</h3>
+        <ul>
+          <li>Payment is confirmed and held before you ship anything</li>
+          <li>No chargebacks after the fact — funds are already secured</li>
+          <li>A fair hearing if a buyer disputes the delivery</li>
+          <li>Build a reputation that helps you close deals faster</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security" class="bg-dim">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Security</span>
+      <h2>Built to be hard to abuse</h2>
+      <p>The same protections you'd expect from a payments product, applied end to end.</p>
+    </div>
+    <div class="sec-grid">
+      <div class="sec-item"><div class="feat-icon">🔐</div><h3>HTTPS everywhere</h3><p>Every request encrypted in transit.</p></div>
+      <div class="sec-item"><div class="feat-icon">🪪</div><h3>JWT sessions</h3><p>Signed tokens, no shared secrets in the client.</p></div>
+      <div class="sec-item"><div class="feat-icon">🧱</div><h3>Rate limiting</h3><p>Abuse and brute-force attempts get throttled automatically.</p></div>
+      <div class="sec-item"><div class="feat-icon">📜</div><h3>Audit logs</h3><p>Every escrow and admin action is recorded.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pricing</span>
+      <h2>One simple fee</h2>
+      <p>No subscriptions, no listing fees — you only pay when a deal goes through.</p>
+    </div>
+    <div class="price-card">
+      <div class="eyebrow">Per completed escrow</div>
+      <div class="price-num">2% <span>of item price</span></div>
+      <div class="price-note">Charged automatically, split into the total the buyer pays.</div>
+      <ul class="price-list">
+        <li>Funds held securely for the full transaction</li>
+        <li>Unlimited chat and evidence uploads</li>
+        <li>Dispute review by the TrustPay team</li>
+        <li>No fee if the deal is cancelled before payment</li>
+      </ul>
+      <a href="login.html" class="btn btn-primary btn-lg" style="width:100%;">Start an escrow</a>
+    </div>
+  </div>
+</section>
+
+<section id="testimonials" class="bg-dim">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Testimonials</span>
+      <h2>Deals that went smoothly</h2>
+    </div>
+    <div class="testi-grid">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p>"I was buying a laptop from someone I'd never met. Knowing my payment was held until I checked it worked made the whole thing feel normal instead of risky."</p>
+        <div class="testi-person"><div class="testi-avatar">RA</div><div><div class="testi-name">Rafiul A.</div><div class="testi-role">Buyer, Dhaka</div></div></div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p>"As a seller I used to worry about chargebacks. Here the payment is already confirmed before I even pack the box."</p>
+        <div class="testi-person"><div class="testi-avatar">SN</div><div><div class="testi-name">Shirin N.</div><div class="testi-role">Seller, Chattogram</div></div></div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★☆</div>
+        <p>"Had one disagreement over a delivery delay. Support looked at the tracking evidence and resolved it within a day."</p>
+        <div class="testi-person"><div class="testi-avatar">MK</div><div><div class="testi-name">Mahin K.</div><div class="testi-role">Buyer, Sylhet</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2>Common questions</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q">Who holds the money during an escrow? <span class="icon">+</span></button>
+        <div class="faq-a"><p>TrustPay holds the buyer's payment from the moment it's confirmed until the buyer approves the delivery or a dispute is resolved. Neither party can access it directly in between.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">What happens if the item isn't what was described? <span class="icon">+</span></button>
+        <div class="faq-a"><p>The buyer can raise a dispute during the inspection period and upload photos or other evidence. The seller can respond, and the TrustPay team decides whether to release the funds or refund the buyer.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">How much does TrustPay cost? <span class="icon">+</span></button>
+        <div class="faq-a"><p>A flat 2% of the item price, charged only when a deal actually goes through. There's no cost for browsing, messaging, or cancelling before payment.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Do I need to verify my identity? <span class="icon">+</span></button>
+        <div class="faq-a"><p>Identity verification (KYC) is optional at first, mainly to build your reputation score faster. It may become required for higher-value escrows later on.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Which payment methods are supported? <span class="icon">+</span></button>
+        <div class="faq-a"><p>Payments currently go through manual confirmation while we finish integrating bKash, Nagad, bank transfer, and card payments.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="bg-dim">
+  <div class="wrap contact-grid">
+    <div class="contact-info">
+      <span class="eyebrow">Contact</span>
+      <h3>Still have a question?</h3>
+      <p>Reach out and our team will get back to you, usually within a business day.</p>
+      <div class="contact-line">✉️ <b>support@trustpay.example</b></div>
+      <div class="contact-line">💬 Live chat available after you log in</div>
+      <div class="contact-line">🕘 Sun–Thu, 10am–6pm (Dhaka time)</div>
+    </div>
+    <form class="contact-form" id="contact-form">
+      <div class="field"><label>Name</label><input type="text" required placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input type="email" required placeholder="you@example.com"></div>
+      <div class="field"><label>Message</label><textarea rows="4" required placeholder="How can we help?"></textarea></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Send message</button>
+      <div class="contact-status" id="contact-status">Thanks — we've received your message and will reply by email.</div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand">Trust<b>Pay</b></div>
+        <p class="foot-desc">A safer way for two strangers to buy and sell online — payment held until both sides are satisfied.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#security">Security</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+        <a href="#">Terms of service</a>
+        <a href="#">Privacy policy</a>
+      </div>
+      <div class="foot-col">
+        <h4>Account</h4>
+        <a href="login.html">Log in</a>
+        <a href="login.html">Create account</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 TrustPay. All rights reserved.</span>
+      <span>Made for safer online deals in Bangladesh.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll('.faq-item').forEach(item=>{
+    const q = item.querySelector('.faq-q');
+    const a = item.querySelector('.faq-a');
+    q.addEventListener('click', ()=>{
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(other=>{
+        if(other!==item){ other.classList.remove('open'); other.querySelector('.faq-a').style.maxHeight=null; }
+      });
+      if(isOpen){ item.classList.remove('open'); a.style.maxHeight=null; }
+      else{ item.classList.add('open'); a.style.maxHeight = a.scrollHeight+'px'; }
+    });
+  });
+
+  // Contact form (static demo — no backend wired yet)
+  document.getElementById('contact-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    document.getElementById('contact-status').classList.add('show');
+    this.reset();
+  });
+
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, {threshold:0.2});
+  revealEls.forEach(el=>io.observe(el));
+</script>
+
+</body>
+</html>
