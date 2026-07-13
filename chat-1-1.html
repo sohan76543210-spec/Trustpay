@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Chat & Evidence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --purple:#7C3AED;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Inter',sans-serif; background:var(--paper-dim); color:var(--ink); line-height:1.5;}
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:700; letter-spacing:-0.02em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none;}
+  input, textarea{font-family:inherit;}
+
+  .app{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+  .side{background:var(--ink); color:#fff; padding:26px 20px; position:sticky; top:0; height:100vh;}
+  .side .brand{font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:36px;}
+  .side .brand b{color:var(--blue-light);}
+  .side nav a{display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:rgba(255,255,255,0.65); font-size:0.92rem; font-weight:500; margin-bottom:4px; transition:background .15s,color .15s;}
+  .side nav a:hover{background:rgba(255,255,255,0.06); color:#fff;}
+  .side nav a.active{background:var(--blue); color:#fff;}
+  .side nav .grp-label{font-family:'JetBrains Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin:22px 0 8px 12px;}
+
+  .main{padding:32px 40px 40px; max-width:900px; display:flex; flex-direction:column; height:100vh;}
+  .back-link{display:inline-flex; align-items:center; gap:6px; color:var(--gray); font-size:0.86rem; margin-bottom:14px;}
+  .back-link:hover{color:var(--blue);}
+
+  .head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+  .head h1{font-size:1.3rem; margin-bottom:4px;}
+  .head .sub{color:var(--gray); font-size:0.85rem;}
+  .badge{display:inline-block; padding:5px 12px; border-radius:20px; font-size:0.76rem; font-weight:600; background:var(--blue-pale); color:var(--blue);}
+
+  .tabs{display:flex; gap:6px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:4px; margin-bottom:18px; width:fit-content;}
+  .tabs button{padding:9px 20px; border-radius:8px; font-weight:600; font-size:0.86rem; color:var(--gray); background:transparent;}
+  .tabs button.active{background:var(--blue); color:#fff;}
+
+  /* ---- Chat pane ---- */
+  #pane-chat{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .chat-box{flex:1; background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; margin-bottom:14px;}
+  .msg{max-width:70%; display:flex; flex-direction:column;}
+  .msg.mine{align-self:flex-end; align-items:flex-end;}
+  .msg.theirs{align-self:flex-start; align-items:flex-start;}
+  .msg .who{font-size:0.72rem; color:var(--gray); margin-bottom:4px; padding:0 4px;}
+  .bubble{padding:10px 14px; border-radius:14px; font-size:0.9rem; word-break:break-word;}
+  .msg.mine .bubble{background:var(--blue); color:#fff; border-bottom-right-radius:4px;}
+  .msg.theirs .bubble{background:var(--paper-dim); color:var(--ink); border-bottom-left-radius:4px;}
+  .msg .time{font-size:0.68rem; color:var(--gray); margin-top:3px; padding:0 4px;}
+  .msg img.att{max-width:220px; border-radius:10px; display:block; margin-top:4px; cursor:pointer;}
+  .msg video.att{max-width:240px; border-radius:10px; display:block; margin-top:4px;}
+  .msg a.file-att{display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); padding:8px 12px; border-radius:8px; margin-top:4px; font-size:0.82rem;}
+  .msg.theirs a.file-att{background:#fff; border:1px solid var(--line);}
+  .empty-note{color:var(--gray); font-size:0.88rem; text-align:center; margin:auto;}
+
+  .composer{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px;}
+  .composer input[type=text]{flex:1; border:none; outline:none; font-size:0.92rem; padding:8px 4px; background:transparent;}
+  .icon-btn{width:38px; height:38px; border-radius:8px; background:var(--paper-dim); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;}
+  .icon-btn:hover{background:var(--blue-pale); color:var(--blue);}
+  .send-btn{background:var(--blue); color:#fff; padding:10px 20px; border-radius:8px; font-weight:600; font-size:0.86rem; flex-shrink:0;}
+  .send-btn:hover{background:#1E4CE0;}
+  .send-btn:disabled{opacity:0.6; cursor:not-allowed;}
+  .attach-preview{display:flex; align-items:center; gap:8px; background:var(--blue-pale); padding:6px 10px; border-radius:8px; font-size:0.8rem; margin-bottom:8px;}
+  .attach-preview button{color:var(--red); font-weight:700;}
+
+  /* ---- Evidence pane ---- */
+  #pane-evidence{flex:1; overflow-y:auto;}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:18px;}
+  .panel h2{font-size:1rem; margin-bottom:14px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:0.82rem; font-weight:600; margin-bottom:6px; color:var(--ink-soft);}
+  .field input, .field textarea{
+    width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:8px;
+    font-size:0.9rem; background:var(--paper-dim); color:var(--ink);
+  }
+  .field textarea{resize:vertical; min-height:70px;}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border-radius:8px; font-weight:600; font-size:0.86rem; cursor:pointer; border:none;}
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-primary:hover{background:#1E4CE0;}
+  .btn-primary:disabled{opacity:0.6; cursor:not-allowed;}
+
+  .evidence-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px;}
+  .ev-card{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--paper-dim);}
+  .ev-card img, .ev-card video{width:100%; height:120px; object-fit:cover; display:block; background:#000;}
+  .ev-card .pdf-thumb{width:100%; height:120px; display:flex; align-items:center; justify-content:center; font-size:2rem; background:#EEF1F8;}
+  .ev-card .meta{padding:10px 12px;}
+  .ev-card .fname{font-size:0.78rem; font-weight:600; word-break:break-word; margin-bottom:2px;}
+  .ev-card .by{font-size:0.7rem; color:var(--gray);}
+  .ev-card .note{font-size:0.76rem; color:var(--ink-softer); margin-top:6px;}
+
+  .loading-gate{position:fixed; inset:0; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; z-index:999; font-size:0.9rem; color:var(--gray);}
+  .hidden{display:none !important;}
+  .notice{padding:12px 16px; border-radius:8px; font-size:0.86rem; margin-bottom:18px;}
+  .notice.danger{background:#FEF2F2; color:var(--red);}
+
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .side{position:relative; height:auto;}
+    .main{height:auto;}
+    .chat-box{max-height:60vh;}
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-gate" id="loading-gate">Loading…</div>
+
+<div class="app" id="app-shell" style="display:none;">
+  <aside class="side">
+    <div class="brand">Trust<b>Pay</b></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="#" id="detail-link">Escrow Details</a>
+      <a href="#" class="active">Chat</a>
+      <div class="grp-label">Account</div>
+      <a href="notifications.html">Notifications</a>
+      <a href="login.html?logout=1">Logout</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <a href="#" id="back-link" class="back-link">← Back to Escrow</a>
+
+    <div id="error-state" class="hidden">
+      <div class="notice danger" id="error-msg">This escrow could not be found.</div>
+    </div>
+
+    <div id="page-content" class="hidden" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+      <div class="head">
+        <div>
+          <h1 id="h-title">Untitled Escrow</h1>
+          <p class="sub" id="h-sub">Chatting with —</p>
+        </div>
+        <span class="badge" id="h-status">—</span>
+      </div>
+
+      <div class="tabs">
+        <button id="tab-chat" class="active" onclick="switchTab('chat')">💬 Chat</button>
+        <button id="tab-evidence" onclick="switchTab('evidence')">📎 Evidence</button>
+      </div>
+
+      <div id="pane-chat">
+        <div class="chat-box" id="chat-box">
+          <p class="empty-note">Loading messages…</p>
+        </div>
+        <div id="attach-preview-area"></div>
+        <div class="composer">
+          <label class="icon-btn" for="chat-file">📎</label>
+          <input type="file" id="chat-file" accept="image/*" class="hidden" onchange="onFileSelected()">
+          <input type="text" id="chat-text" placeholder="Type a message…" onkeydown="if(event.key==='Enter'){sendMessage();}">
+          <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+
+      <div id="pane-evidence" class="hidden">
+        <div class="panel">
+          <h2>Upload Evidence</h2>
+          <p style="color:var(--gray); font-size:0.85rem; margin-bottom:16px;">Upload photos related to this transaction — useful if a dispute needs to be reviewed by an admin. (Video and PDF support is coming soon.)</p>
+          <div class="field">
+            <label>Photo (max 5MB)</label>
+            <input type="file" id="evidence-file" accept="image/*">
+          </div>
+          <div class="field">
+            <label>Note (optional)</label>
+            <textarea id="evidence-note" placeholder="What does this file show?"></textarea>
+          </div>
+          <button class="btn btn-primary" id="evidence-upload-btn" onclick="uploadEvidence()">Upload Evidence</button>
+        </div>
+
+        <div class="panel">
+          <h2>Uploaded Evidence</h2>
+          <div class="evidence-grid" id="evidence-grid">
+            <p class="empty-note">Loading…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiPGG2alqPUjxrkWmUJu1nTMKe28oztzA",
+    authDomain: "trust-pay-342b3.firebaseapp.com",
+    projectId: "trust-pay-342b3",
+    storageBucket: "trust-pay-342b3.firebasestorage.app",
+    messagingSenderId: "757581172953",
+    appId: "1:757581172953:web:28350ab5f7ec6f49fe6ec8"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // imgbb is used for image hosting instead of Firebase Storage (no billing card required).
+  // NOTE: imgbb only hosts images — video and PDF uploads are temporarily disabled below.
+  const IMGBB_API_KEY = "91735f2a70afed20711266f955b057e2";
+  async function uploadToImgbb(file){
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+    const json = await res.json();
+    if(!json.success){
+      throw new Error((json.error && json.error.message) || 'imgbb upload failed');
+    }
+    return json.data.url;
+  }
+
+  let currentUser = null;
+  let escrowId = null;
+  let escrowData = null;
+  let currentRole = null;
+  let pendingFile = null;
+  let messagesUnsub = null;
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+  function fmtTime(ts){
+    if(!ts || !ts.toDate) return '';
+    return ts.toDate().toLocaleString(undefined, {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  }
+  function fileKind(type){
+    if(!type) return 'file';
+    if(type.startsWith('image/')) return 'image';
+    if(type.startsWith('video/')) return 'video';
+    if(type === 'application/pdf') return 'pdf';
+    return 'file';
+  }
+
+  function switchTab(tab){
+    document.getElementById('tab-chat').classList.toggle('active', tab==='chat');
+    document.getElementById('tab-evidence').classList.toggle('active', tab==='evidence');
+    document.getElementById('pane-chat').classList.toggle('hidden', tab!=='chat');
+    document.getElementById('pane-evidence').classList.toggle('hidden', tab!=='evidence');
+  }
+
+  // ---------- Chat ----------
+  function listenToMessages(){
+    const box = document.getElementById('chat-box');
+    messagesUnsub = db.collection('escrows').doc(escrowId).collection('messages')
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(snap => {
+        if(snap.empty){
+          box.innerHTML = '<p class="empty-note">No messages yet — say hello 👋</p>';
+          return;
+        }
+        box.innerHTML = snap.docs.map(doc => renderMessage(doc.data())).join('');
+        box.scrollTop = box.scrollHeight;
+      }, err => {
+        console.error(err);
+        box.innerHTML = '<p class="empty-note">Could not load messages.</p>';
+      });
+  }
+
+  function renderMessage(m){
+    const mine = m.senderUid === currentUser.uid;
+    let attHtml = '';
+    if(m.fileUrl){
+      const kind = fileKind(m.fileType);
+      if(kind === 'image'){
+        attHtml = `<img class="att" src="${m.fileUrl}" onclick="window.open('${m.fileUrl}','_blank')">`;
+      } else if(kind === 'video'){
+        attHtml = `<video class="att" src="${m.fileUrl}" controls></video>`;
+      } else {
+        attHtml = `<a class="file-att" href="${m.fileUrl}" target="_blank">📄 ${escapeHtml(m.fileName||'File')}</a>`;
+      }
+    }
+    const textHtml = m.text ? `<div class="bubble">${escapeHtml(m.text)}</div>` : (attHtml ? '' : '');
+    return `<div class="msg ${mine?'mine':'theirs'}">
+        <div class="who">${escapeHtml(m.senderRole==='buyer'?'Buyer':'Seller')}${mine?' (you)':''}</div>
+        ${textHtml}
+        ${attHtml}
+        <div class="time">${fmtTime(m.createdAt)}</div>
+      </div>`;
+  }
+
+  function onFileSelected(){
+    const file = document.getElementById('chat-file').files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      alert('Only photos can be attached right now.');
+      document.getElementById('chat-file').value = '';
+      return;
+    }
+    if(file.size > 5*1024*1024){
+      alert('File is too large — please choose a photo under 5MB.');
+      document.getElementById('chat-file').value = '';
+      return;
+    }
+    pendingFile = file;
+    document.getElementById('attach-preview-area').innerHTML = `
+      <div class="attach-preview">📎 ${escapeHtml(file.name)} <button onclick="clearAttachment()">✕</button></div>`;
+  }
+  function clearAttachment(){
+    pendingFile = null;
+    document.getElementById('chat-file').value = '';
+    document.getElementById('attach-preview-area').innerHTML = '';
+  }
+
+  async function sendMessage(){
+    const textEl = document.getElementById('chat-text');
+    const text = textEl.value.trim();
+    if(!text && !pendingFile) return;
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try{
+      let fileUrl = null, fileName = null, fileType = null;
+      if(pendingFile){
+        fileUrl = await uploadToImgbb(pendingFile);
+        fileName = pendingFile.name;
+        fileType = pendingFile.type;
+      }
+      await db.collection('escrows').doc(escrowId).collection('messages').add({
+        senderUid: currentUser.uid,
+        senderRole: currentRole,
+        text: text || null,
+        fileUrl, fileName, fileType,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      textEl.value = '';
+      clearAttachment();
+    } catch(err){
+      alert('Could not send message: ' + (err.message || 'please try again.'));
+    }
+    btn.disabled = false;
+    btn.textContent = 'Send';
+  }
+
+  // ---------- Evidence ----------
+  function listenToEvidence(){
+    const grid = document.getElementById('evidence-grid');
+    db.collection('escrows').doc(escrowId).collection('evidence')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snap => {
+        if(snap.empty){
+          grid.innerHTML = '<p class="empty-note">No evidence uploaded yet.</p>';
+          return;
+        }
+        grid.innerHTML = snap.docs.map(doc => renderEvidence(doc.data())).join('');
+      }, err => {
+        console.error(err);
+        grid.innerHTML = '<p class="empty-note">Could not load evidence.</p>';
+      });
+  }
+
+  function renderEvidence(e){
+    const kind = fileKind(e.fileType);
+    let media = '';
+    if(kind === 'image') media = `<img src="${e.fileUrl}" onclick="window.open('${e.fileUrl}','_blank')" style="cursor:pointer;">`;
+    else if(kind === 'video') media = `<video src="${e.fileUrl}" controls></video>`;
+    else media = `<a class="pdf-thumb" href="${e.fileUrl}" target="_blank">📄</a>`;
+    return `<div class="ev-card">
+        ${media}
+        <div class="meta">
+          <div class="fname">${escapeHtml(e.fileName||'File')}</div>
+          <div class="by">${escapeHtml(e.uploaderRole==='buyer'?'Buyer':'Seller')} · ${fmtTime(e.createdAt)}</div>
+          ${e.note ? `<div class="note">${escapeHtml(e.note)}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  async function uploadEvidence(){
+    const fileInput = document.getElementById('evidence-file');
+    const file = fileInput.files[0];
+    if(!file){ alert('Please choose a photo first.'); return; }
+    if(!file.type.startsWith('image/')){ alert('Only photos can be uploaded as evidence right now.'); return; }
+    if(file.size > 5*1024*1024){ alert('File is too large — please choose a photo under 5MB.'); return; }
+
+    const note = document.getElementById('evidence-note').value.trim();
+    const btn = document.getElementById('evidence-upload-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+
+    try{
+      const fileUrl = await uploadToImgbb(file);
+
+      await db.collection('escrows').doc(escrowId).collection('evidence').add({
+        uploaderUid: currentUser.uid,
+        uploaderRole: currentRole,
+        fileUrl, fileName: file.name, fileType: file.type,
+        note: note || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      fileInput.value = '';
+      document.getElementById('evidence-note').value = '';
+    } catch(err){
+      alert('Could not upload evidence: ' + (err.message || 'please try again.'));
+    }
+    btn.disabled = false;
+    btn.textContent = 'Upload Evidence';
+  }
+
+  // ---------- Init ----------
+  auth.onAuthStateChanged(async function(user){
+    if(!user){
+      window.location.href = 'login.html';
+      return;
+    }
+    currentUser = user;
+
+    const params = new URLSearchParams(window.location.search);
+    escrowId = params.get('id');
+    if(!escrowId){
+      document.getElementById('error-msg').textContent = 'No escrow ID was provided.';
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('loading-gate').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'grid';
+      return;
+    }
+
+    try{
+      const doc = await db.collection('escrows').doc(escrowId).get();
+      if(!doc.exists){
+        document.getElementById('error-msg').textContent = 'This escrow could not be found.';
+        document.getElementById('error-state').classList.remove('hidden');
+      } else {
+        escrowData = doc.data();
+        if(escrowData.buyerUid === user.uid) currentRole = 'buyer';
+        else if(escrowData.sellerUid === user.uid) currentRole = 'seller';
+        else {
+          document.getElementById('error-msg').textContent = "You don't have permission to view this chat.";
+          document.getElementById('error-state').classList.remove('hidden');
+        }
+
+        if(currentRole){
+          document.getElementById('page-content').classList.remove('hidden');
+          document.getElementById('h-title').textContent = escrowData.title || 'Untitled Escrow';
+          const counterparty = currentRole === 'buyer'
+            ? (escrowData.sellerEmail || escrowData.counterpartyContact || 'the seller')
+            : (escrowData.buyerEmail || escrowData.counterpartyContact || 'the buyer');
+          document.getElementById('h-sub').textContent = 'Chatting with ' + counterparty;
+          document.getElementById('h-status').textContent = escrowData.status || 'Draft';
+          document.getElementById('back-link').href = 'escrow-detail.html?id=' + escrowId;
+          document.getElementById('detail-link').href = 'escrow-detail.html?id=' + escrowId;
+
+          listenToMessages();
+          listenToEvidence();
+        }
+      }
+    } catch(err){
+      console.error(err);
+      document.getElementById('error-msg').textContent = 'Something went wrong loading this chat.';
+      document.getElementById('error-state').classList.remove('hidden');
+    }
+
+    document.getElementById('loading-gate').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'grid';
+  });
+
+  window.addEventListener('beforeunload', () => { if(messagesUnsub) messagesUnsub(); });
+</script>
+
+</body>
+</html>
