@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustPay — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<style>
+  :root{
+    --ink:#0B1220; --ink-soft:#1B2B45; --ink-softer:#33507A;
+    --paper:#FFFFFF; --paper-dim:#F2F6FF;
+    --blue:#2F5FFF; --blue-light:#7A9EFF; --blue-pale:#E8EEFF;
+    --line: rgba(11,18,32,0.10); --gray:#5B677A;
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --purple:#7C3AED;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Inter',sans-serif; background:var(--paper-dim); color:var(--ink); line-height:1.6;}
+  h1,h2,h3{font-family:'Sora',sans-serif; font-weight:700; letter-spacing:-0.02em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a{color:inherit; text-decoration:none;}
+
+  /* ---- App shell ---- */
+  .app{display:grid; grid-template-columns:240px 1fr; min-height:100vh;}
+  .side{background:var(--ink); color:#fff; padding:26px 20px; position:sticky; top:0; height:100vh;}
+  .side .brand{font-family:'Sora',sans-serif; font-weight:700; font-size:1.15rem; margin-bottom:36px;}
+  .side .brand b{color:var(--blue-light);}
+  .side nav a{display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:8px; color:rgba(255,255,255,0.65); font-size:0.92rem; font-weight:500; margin-bottom:4px; transition:background .15s,color .15s;}
+  .side nav a:hover{background:rgba(255,255,255,0.06); color:#fff;}
+  .side nav a.active{background:var(--blue); color:#fff;}
+  .side nav .grp-label{font-family:'JetBrains Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin:22px 0 8px 12px;}
+
+  .main{padding:32px 40px 60px;}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;}
+  .topbar h1{font-size:1.5rem;}
+  .topbar p{color:var(--gray); font-size:0.9rem; margin-top:4px;}
+  .user-chip{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); padding:8px 14px; border-radius:30px;}
+  .user-chip .av{width:30px; height:30px; border-radius:50%; background:var(--blue-pale); color:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; overflow:hidden;}
+  .user-chip .av img{width:100%; height:100%; object-fit:cover;}
+
+  /* ---- Stat cards (reputation) ---- */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px;}
+  .stat{background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px;}
+  .stat .lbl{font-size:0.82rem; color:var(--gray); margin-bottom:8px;}
+  .stat .val{font-family:'JetBrains Mono',monospace; font-size:1.7rem; font-weight:600;}
+  .stat.rating .val{color:var(--purple);}
+  .stat.deals .val{color:var(--blue);}
+  .stat.success .val{color:var(--green);}
+
+  /* ---- Panel layout ---- */
+  .grid2{display:grid; grid-template-columns:1.3fr 1fr; gap:24px; align-items:start;}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:24px;}
+  .panel h2{font-size:1.05rem; margin-bottom:6px;}
+  .panel .panel-sub{font-size:0.84rem; color:var(--gray); margin-bottom:20px;}
+
+  /* ---- Avatar uploader ---- */
+  .avatar-row{display:flex; align-items:center; gap:18px; margin-bottom:24px;}
+  .avatar-big{width:76px; height:76px; border-radius:50%; background:var(--blue-pale); color:var(--blue); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.7rem; overflow:hidden; flex-shrink:0;}
+  .avatar-big img{width:100%; height:100%; object-fit:cover;}
+  .avatar-actions{display:flex; flex-direction:column; gap:6px;}
+  .btn-ghost{display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; font-weight:600; font-size:0.84rem; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink-soft); width:fit-content;}
+  .btn-ghost:hover{background:var(--paper-dim);}
+  .avatar-hint{font-size:0.76rem; color:var(--gray);}
+
+  /* ---- Form fields ---- */
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:0.84rem; font-weight:600; margin-bottom:6px; color:var(--ink-soft);}
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:8px;
+    font-family:'Inter',sans-serif; font-size:0.92rem; background:var(--paper-dim); color:var(--ink);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--blue-light); outline-offset:1px; background:#fff;}
+  .field input:disabled{color:var(--gray); cursor:not-allowed;}
+  .field-hint{font-size:0.78rem; color:var(--gray); margin-top:5px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:8px; font-weight:600; font-size:0.9rem; cursor:pointer; border:none;}
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-primary:hover{background:#1E4CE0;}
+  .btn-primary:disabled{background:var(--blue-light); cursor:not-allowed;}
+
+  .badge{display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.74rem; font-weight:600;}
+  .badge.verified{background:#ECFDF5; color:var(--green);}
+  .badge.unverified{background:#FEF3C7; color:var(--amber);}
+  .badge.role{background:var(--blue-pale); color:var(--blue); text-transform:capitalize;}
+
+  .kv{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); font-size:0.88rem;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--gray);}
+
+  .save-note{font-size:0.84rem; margin-top:12px; min-height:1.2em;}
+  .save-note.ok{color:var(--green);}
+  .save-note.err{color:var(--red);}
+
+  .loading-gate{position:fixed; inset:0; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; z-index:999; font-size:0.9rem; color:var(--gray);}
+
+  @media(max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .side{position:relative; height:auto;}
+    .stats{grid-template-columns:1fr;}
+    .grid2{grid-template-columns:1fr;}
+    .row2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-gate" id="loading-gate">Loading…</div>
+
+<div class="app" id="app-shell" style="display:none;">
+  <aside class="side">
+    <div class="brand">Trust<b>Pay</b></div>
+    <nav id="side-nav">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="dashboard.html#escrows">My Escrows</a>
+      <a href="chat.html">Chat</a>
+      <a href="dashboard.html#disputes">Disputes</a>
+      <a href="wallet.html">Wallet</a>
+      <a href="profile.html" class="active">Profile</a>
+      <div class="grp-label">Account</div>
+      <a href="notifications.html">Notifications</a>
+      <a href="login.html?logout=1">Logout</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Profile</h1>
+        <p>Manage your personal details, verification, and reputation</p>
+      </div>
+      <div class="user-chip"><div class="av" id="user-avatar-chip">?</div> <span id="user-name-chip">Loading…</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat deals"><div class="lbl">Completed Deals</div><div class="val" id="stat-deals">0</div></div>
+      <div class="stat success"><div class="lbl">Success Rate</div><div class="val" id="stat-success">—</div></div>
+      <div class="stat rating"><div class="lbl">Average Rating</div><div class="val" id="stat-rating">—</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Personal information</h2>
+        <p class="panel-sub">This is shown to the buyer or seller you're transacting with.</p>
+
+        <div class="avatar-row">
+          <div class="avatar-big" id="avatar-big">?</div>
+          <div class="avatar-actions">
+            <label class="btn-ghost" for="photo-input">Change photo</label>
+            <input type="file" id="photo-input" accept="image/*" class="hidden" style="display:none;" onchange="onPhotoSelected()">
+            <span class="avatar-hint" id="photo-status">JPG or PNG, up to 5MB</span>
+          </div>
+        </div>
+
+        <form onsubmit="return saveProfile(event)">
+          <div class="field">
+            <label for="f-name">Full name</label>
+            <input type="text" id="f-name" placeholder="Your full name" required>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="f-email">Email</label>
+              <input type="email" id="f-email" disabled>
+            </div>
+            <div class="field">
+              <label for="f-phone">Phone number</label>
+              <input type="tel" id="f-phone" placeholder="e.g. +8801XXXXXXXXX">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="f-address">Address</label>
+            <textarea id="f-address" rows="3" placeholder="Street, city, postcode"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="save-btn">Save changes</button>
+          <div class="save-note" id="save-note"></div>
+        </form>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>Account</h2>
+          <p class="panel-sub">Your role and verification status</p>
+          <div class="kv"><span class="k">Role</span> <span class="badge role" id="acc-role">—</span></div>
+          <div class="kv"><span class="k">KYC verification</span> <span class="badge" id="acc-kyc">—</span></div>
+          <div class="kv"><span class="k">Member since</span> <span id="acc-since">—</span></div>
+        </div>
+
+        <div class="panel">
+          <h2>Identity verification (KYC)</h2>
+          <p class="panel-sub" id="kyc-note">Optional for now — required later for higher transaction limits.</p>
+          <div class="field">
+            <label for="f-nid">National ID number</label>
+            <input type="text" id="f-nid" placeholder="Enter your National ID number">
+          </div>
+          <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="submitKyc()">Submit for verification</button>
+          <div class="save-note" id="kyc-save-note"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Security</h2>
+          <p class="panel-sub">Change your password by email</p>
+          <button type="button" class="btn btn-ghost" style="width:100%; justify-content:center;" onclick="sendPasswordReset()">Send password reset email</button>
+          <div class="save-note" id="pw-note"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCiPGG2alqPUjxrkWmUJu1nTMKe28oztzA",
+    authDomain: "trust-pay-342b3.firebaseapp.com",
+    projectId: "trust-pay-342b3",
+    storageBucket: "trust-pay-342b3.firebasestorage.app",
+    messagingSenderId: "757581172953",
+    appId: "1:757581172953:web:28350ab5f7ec6f49fe6ec8"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  let currentUser = null;
+  let userData = {};
+
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function initials(name){
+    return (name||'?').trim().charAt(0).toUpperCase() || '?';
+  }
+
+  function fmtDate(ts){
+    if(!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  function renderAvatar(photoURL, name){
+    const chip = document.getElementById('user-avatar-chip');
+    const big = document.getElementById('avatar-big');
+    if(photoURL){
+      chip.innerHTML = `<img src="${photoURL}" alt="">`;
+      big.innerHTML = `<img src="${photoURL}" alt="">`;
+    } else {
+      chip.textContent = initials(name);
+      big.textContent = initials(name);
+    }
+  }
+
+  function renderProfile(){
+    const name = userData.name || currentUser.displayName || '';
+    document.getElementById('f-name').value = name;
+    document.getElementById('f-email').value = currentUser.email || '';
+    document.getElementById('f-phone').value = userData.phone || '';
+    document.getElementById('f-address').value = userData.address || '';
+    document.getElementById('f-nid').value = userData.nationalId || '';
+    document.getElementById('user-name-chip').textContent = name || currentUser.email || 'there';
+    renderAvatar(userData.photoURL, name);
+
+    const role = userData.role || '—';
+    document.getElementById('acc-role').textContent = role;
+
+    const kycBadge = document.getElementById('acc-kyc');
+    if(userData.kycVerified){
+      kycBadge.textContent = 'Verified';
+      kycBadge.className = 'badge verified';
+    } else if(userData.kycPending){
+      kycBadge.textContent = 'Pending review';
+      kycBadge.className = 'badge unverified';
+    } else {
+      kycBadge.textContent = 'Not verified';
+      kycBadge.className = 'badge unverified';
+    }
+    document.getElementById('kyc-note').textContent = userData.kycVerified
+      ? 'Your identity has been verified by our team.'
+      : (userData.kycPending
+        ? 'Your submission is awaiting admin review.'
+        : 'Optional for now — required later for higher transaction limits.');
+
+    document.getElementById('acc-since').textContent = fmtDate(userData.createdAt);
+
+    document.getElementById('stat-deals').textContent = userData.completedDeals || 0;
+    document.getElementById('stat-success').textContent = userData.completedDeals
+      ? Math.round((userData.successRate != null ? userData.successRate : 100)) + '%'
+      : '—';
+    document.getElementById('stat-rating').textContent = userData.avgRating
+      ? Number(userData.avgRating).toFixed(1) + ' ★'
+      : 'New';
+  }
+
+  async function saveProfile(e){
+    e.preventDefault();
+    const btn = document.getElementById('save-btn');
+    const note = document.getElementById('save-note');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    note.textContent = '';
+    note.className = 'save-note';
+
+    const payload = {
+      name: document.getElementById('f-name').value.trim(),
+      phone: document.getElementById('f-phone').value.trim(),
+      address: document.getElementById('f-address').value.trim()
+    };
+
+    try{
+      await db.collection('users').doc(currentUser.uid).set(payload, { merge: true });
+      Object.assign(userData, payload);
+      document.getElementById('user-name-chip').textContent = payload.name || currentUser.email;
+      renderAvatar(userData.photoURL, payload.name);
+      note.textContent = 'Saved.';
+      note.className = 'save-note ok';
+    } catch(err){
+      note.textContent = 'Could not save: ' + (err.message || 'please try again.');
+      note.className = 'save-note err';
+    }
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+  }
+
+  async function onPhotoSelected(){
+    const input = document.getElementById('photo-input');
+    const file = input.files[0];
+    if(!file) return;
+    if(file.size > 5*1024*1024){
+      document.getElementById('photo-status').textContent = 'File too large — max 5MB.';
+      return;
+    }
+    const status = document.getElementById('photo-status');
+    status.textContent = 'Uploading…';
+    try{
+      const path = `users/${currentUser.uid}/profile-photo.jpg`;
+      const ref = storage.ref(path);
+      await ref.put(file);
+      const photoURL = await ref.getDownloadURL();
+      await db.collection('users').doc(currentUser.uid).set({ photoURL }, { merge: true });
+      userData.photoURL = photoURL;
+      renderAvatar(photoURL, userData.name);
+      status.textContent = 'Photo updated.';
+    } catch(err){
+      status.textContent = 'Upload failed: ' + (err.message || 'please try again.');
+    }
+    input.value = '';
+  }
+
+  async function submitKyc(){
+    const nid = document.getElementById('f-nid').value.trim();
+    const note = document.getElementById('kyc-save-note');
+    if(!nid){
+      note.textContent = 'Enter your National ID number first.';
+      note.className = 'save-note err';
+      return;
+    }
+    try{
+      await db.collection('users').doc(currentUser.uid).set({
+        nationalId: nid,
+        kycPending: true,
+        kycSubmittedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      userData.nationalId = nid;
+      userData.kycPending = true;
+      renderProfile();
+      note.textContent = 'Submitted — an admin will review your ID shortly.';
+      note.className = 'save-note ok';
+    } catch(err){
+      note.textContent = 'Could not submit: ' + (err.message || 'please try again.');
+      note.className = 'save-note err';
+    }
+  }
+
+  async function sendPasswordReset(){
+    const note = document.getElementById('pw-note');
+    try{
+      await auth.sendPasswordResetEmail(currentUser.email);
+      note.textContent = 'Reset link sent to ' + currentUser.email;
+      note.className = 'save-note ok';
+    } catch(err){
+      note.textContent = 'Could not send email: ' + (err.message || 'please try again.');
+      note.className = 'save-note err';
+    }
+  }
+
+  auth.onAuthStateChanged(async function(user){
+    if(!user){
+      window.location.href = 'login.html';
+      return;
+    }
+    currentUser = user;
+    try{
+      const snap = await db.collection('users').doc(user.uid).get();
+      userData = snap.exists ? snap.data() : {};
+      renderProfile();
+    } catch(err){
+      console.error(err);
+    }
+    document.getElementById('loading-gate').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'grid';
+  });
+</script>
+</body>
+</html>
